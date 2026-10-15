@@ -5,6 +5,7 @@ import '../providers/quran_provider.dart';
 import '../core/constants/app_colors.dart';
 import 'quran_detail_screen.dart';
 import 'hafiz_select_modal.dart';
+import 'favorite_ayahs_screen.dart';
 
 class QuranListScreen extends StatefulWidget {
   const QuranListScreen({super.key});
@@ -22,10 +23,13 @@ class _QuranListScreenState extends State<QuranListScreen> {
     final selectedHafiz = quranProvider.selectedHafiz;
 
     final filteredSurahs = quranProvider.surahList.where((surah) {
-      final query = _searchQuery.toLowerCase();
+      final query = _searchQuery.toLowerCase().trim();
+      if (query.isEmpty) return true;
+      final numQuery = int.tryParse(query);
       return surah.nameTr.toLowerCase().contains(query) ||
           surah.nameAr.contains(query) ||
-          surah.number.toString() == query;
+          surah.number.toString() == query ||
+          (numQuery != null && surah.numberOfAyahs == numQuery);
     }).toList();
 
     return Scaffold(
@@ -36,6 +40,16 @@ class _QuranListScreenState extends State<QuranListScreen> {
           style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary),
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.bookmark_outline, color: AppColors.goldPrimary),
+            tooltip: 'Beğenilen Ayetler',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const FavoriteAyahsScreen()),
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.record_voice_over, color: AppColors.goldPrimary),
             tooltip: 'Hafız Seç',
@@ -160,6 +174,53 @@ class _QuranListScreenState extends State<QuranListScreen> {
               ),
             ),
 
+          if (quranProvider.favorites.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              child: InkWell(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const FavoriteAyahsScreen()),
+                  );
+                },
+                borderRadius: BorderRadius.circular(16),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: AppColors.cardBg,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppColors.goldPrimary.withValues(alpha: 0.6)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.favorite, color: Colors.redAccent, size: 24),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'Beğenilen Ayetler (${quranProvider.favorites.length})',
+                          style: const TextStyle(
+                            color: AppColors.textPrimary,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                      const Text(
+                        'Tümünü Gör',
+                        style: TextStyle(
+                          color: AppColors.goldGlow,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      ),
+                      const Icon(Icons.chevron_right, color: AppColors.goldGlow, size: 20),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
           // Search Field
           Padding(
             padding: const EdgeInsets.all(16.0),
@@ -171,7 +232,7 @@ class _QuranListScreenState extends State<QuranListScreen> {
                 });
               },
               decoration: InputDecoration(
-                hintText: 'Sure ara (Örn: Yasin, Fatiha, 36)...',
+                hintText: 'Sure ara (Örn: Yasin, Fatiha, 36, 7 ayet)...',
                 hintStyle: const TextStyle(color: AppColors.textSecondary),
                 prefixIcon: const Icon(Icons.search, color: AppColors.goldPrimary),
                 filled: true,
@@ -191,11 +252,29 @@ class _QuranListScreenState extends State<QuranListScreen> {
 
           // Surah List
           Expanded(
-            child: quranProvider.isLoadingSurahs
+            child: quranProvider.isLoadingSurahs && quranProvider.surahList.isEmpty
                 ? const Center(
                     child: CircularProgressIndicator(color: AppColors.goldPrimary),
                   )
-                : ListView.builder(
+                : filteredSurahs.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.search_off,
+                                color: AppColors.goldPrimary, size: 48),
+                            const SizedBox(height: 12),
+                            Text(
+                              _searchQuery.isNotEmpty
+                                  ? '"$_searchQuery" ile eşleşen sure bulunamadı'
+                                  : 'Sure bulunamadı',
+                              style: const TextStyle(
+                                  color: AppColors.textSecondary, fontSize: 14),
+                            ),
+                          ],
+                        ),
+                      )
+                    : ListView.builder(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     itemCount: filteredSurahs.length,
                     itemBuilder: (context, index) {

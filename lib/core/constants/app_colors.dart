@@ -15,6 +15,7 @@ class AppColors {
   static const Color goldPrimary = Color(0xFFF59E0B);
   static const Color goldLight = Color(0xFFFBBF24);
   static const Color goldGlow = Color(0xFFFFD700);
+  static const Color goldDark = Color(0xFFB45309);
 
   // Card Glassmorphism
   static const Color glassBg = Color(0x1F2A3B5C);

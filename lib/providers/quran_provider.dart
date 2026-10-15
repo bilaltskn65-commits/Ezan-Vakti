@@ -1,21 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/surah_model.dart';
 import '../models/ayah_model.dart';
 import '../models/hafiz_model.dart';
+import '../models/favorite_ayah_model.dart';
 import '../core/services/quran_service.dart';
+import '../core/constants/quran_surahs_data.dart';
 
 class QuranProvider extends ChangeNotifier {
-  List<SurahModel> _surahList = [];
+  List<SurahModel> _surahList = List.from(kAllSurahs);
   SurahModel? _currentSurah;
   List<AyahModel> _ayahs = [];
+  List<FavoriteAyahModel> _favorites = [];
   bool _isLoadingSurahs = false;
   bool _isLoadingAyahs = false;
   String _errorMessage = '';
 
   HafizModel _selectedHafiz = HafizList.reciters.first; // Default: Mişari Raşid
   final AudioPlayer _audioPlayer = AudioPlayer();
+  static const _widgetChannel = MethodChannel('com.ezanvakti.app/widget');
 
   bool _isPlaying = false;
   int _currentAyahIndex = -1; // -1 means no ayah playing currently
@@ -25,9 +30,13 @@ class QuranProvider extends ChangeNotifier {
   String? _lastSurahName;
   int? _lastAyahNumber;
 
+  FavoriteAyahModel? _pinnedAyah;
+
   List<SurahModel> get surahList => _surahList;
   SurahModel? get currentSurah => _currentSurah;
   List<AyahModel> get ayahs => _ayahs;
+  List<FavoriteAyahModel> get favorites => _favorites;
+  FavoriteAyahModel? get pinnedAyah => _pinnedAyah;
   bool get isLoadingSurahs => _isLoadingSurahs;
   bool get isLoadingAyahs => _isLoadingAyahs;
   String get errorMessage => _errorMessage;
@@ -39,6 +48,24 @@ class QuranProvider extends ChangeNotifier {
   String? get lastSurahName => _lastSurahName;
   int? get lastAyahNumber => _lastAyahNumber;
 
+  AyahModel? get currentPlayingAyah {
+    if (_currentAyahIndex >= 0 && _currentAyahIndex < _ayahs.length) {
+      return _ayahs[_currentAyahIndex];
+    }
+    return null;
+  }
+
+  String get activeTrackTitle {
+    if (_currentSurah != null && _currentAyahIndex >= 0 && _currentAyahIndex < _ayahs.length) {
+      return '${_currentSurah!.nameTr}, ${_ayahs[_currentAyahIndex].numberInSurah}. Ayet';
+    } else if (_pinnedAyah != null) {
+      return '${_pinnedAyah!.surahName}, ${_pinnedAyah!.ayahNumber}. Ayet';
+    } else if (_lastSurahName != null && _lastAyahNumber != null) {
+      return '$_lastSurahName, $_lastAyahNumber. Ayet';
+    }
+    return 'Fatiha Suresi';
+  }
+
   QuranProvider() {
     _init();
   }
@@ -47,9 +74,43 @@ class QuranProvider extends ChangeNotifier {
     _initAudioListeners();
     await loadSurahList();
     await loadLastReadPosition();
+    await loadFavorites();
+    await loadPinnedAyah();
+  }
+
+  String? _audioFeedbackMessage;
+  String? get audioFeedbackMessage => _audioFeedbackMessage;
+  void clearAudioFeedback() {
+    _audioFeedbackMessage = null;
   }
 
   void _initAudioListeners() {
+    try {
+      _audioPlayer.setPlayerMode(PlayerMode.mediaPlayer);
+      _audioPlayer.setReleaseMode(ReleaseMode.stop);
+      _audioPlayer.setVolume(1.0);
+      _audioPlayer.setAudioContext(
+        AudioContext(
+          android: const AudioContextAndroid(
+            isSpeakerphoneOn: true,
+            stayAwake: true,
+            contentType: AndroidContentType.music,
+            usageType: AndroidUsageType.media,
+            audioFocus: AndroidAudioFocus.gain,
+            audioMode: AndroidAudioMode.normal,
+          ),
+          iOS: AudioContextIOS(
+            category: AVAudioSessionCategory.playback,
+            options: {
+              AVAudioSessionOptions.defaultToSpeaker,
+            },
+          ),
+        ),
+      );
+    } catch (e) {
+      debugPrint('AudioPlayer init error: $e');
+    }
+
     _audioPlayer.onPlayerStateChanged.listen((state) {
       _isPlaying = (state == PlayerState.playing);
       notifyListeners();
@@ -82,6 +143,8 @@ class QuranProvider extends ChangeNotifier {
 
   Future<void> loadSurah(int surahNumber, {int? autoPlayAyahIndex}) async {
     _isLoadingAyahs = true;
+    _errorMessage = '';
+    _ayahs = [];
     _currentSurah = _surahList.firstWhere(
       (s) => s.number == surahNumber,
       orElse: () => SurahModel(
@@ -101,7 +164,7 @@ class QuranProvider extends ChangeNotifier {
         await playAyah(autoPlayAyahIndex);
       }
     } catch (e) {
-      _errorMessage = 'Ayetler yüklenirken hata oluştu';
+      _errorMessage = 'Ayetler yüklenirken hata oluştu: İnternet bağlantınızı kontrol ediniz.';
     } finally {
       _isLoadingAyahs = false;
       notifyListeners();
@@ -120,16 +183,57 @@ class QuranProvider extends ChangeNotifier {
     }
   }
 
+  // Çevrimdışı hazır MP3 sesleri bulunan sureler (Namaz sureleri & İnşirah)
+  static const Set<int> _offlineAudioSurahs = {
+    1, 94, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114
+  };
+
   Future<void> playAyah(int index) async {
     if (index < 0 || index >= _ayahs.length || _currentSurah == null) return;
 
     _currentAyahIndex = index;
     final ayah = _ayahs[index];
-    final audioUrl = ayah.getAudioUrl(_currentSurah!.number, _selectedHafiz.serverPath);
+    final surahNum = _currentSurah!.number;
+    final sStr = surahNum.toString().padLeft(3, '0');
+    final aStr = ayah.numberInSurah.toString().padLeft(3, '0');
 
-    await _audioPlayer.stop();
-    await _audioPlayer.play(UrlSource(audioUrl));
-    _isPlaying = true;
+    try {
+      bool played = false;
+
+      // 1. Çevrimdışı hazır MP3 kontrolü (Namaz sureleri & İnşirah)
+      if (_offlineAudioSurahs.contains(surahNum) && _selectedHafiz.id == 'alafasy') {
+        await _audioPlayer.play(AssetSource('audio/$sStr$aStr.mp3'));
+        played = true;
+      } else {
+        // 2. Çevrimiçi sunucudan akıt
+        try {
+          final audioUrl = ayah.getAudioUrl(surahNum, _selectedHafiz.serverPath);
+          await _audioPlayer.play(UrlSource(audioUrl));
+          played = true;
+        } catch (streamError) {
+          debugPrint('Online stream failed for ${_selectedHafiz.nameTr}: $streamError');
+          // Çevrimdışı hazır MP3 varsa hemen ona dön
+          if (_offlineAudioSurahs.contains(surahNum)) {
+            debugPrint('Fallback to bundled audio for surah $surahNum');
+            await _audioPlayer.play(AssetSource('audio/$sStr$aStr.mp3'));
+            _audioFeedbackMessage = '${_selectedHafiz.nameTr} sesine bağlanılamadı, hazır ses çalınıyor.';
+            played = true;
+          } else {
+            rethrow;
+          }
+        }
+      }
+
+      if (played) {
+        _isPlaying = true;
+        _errorMessage = '';
+      }
+    } catch (e) {
+      debugPrint('playAyah audio error: $e');
+      _isPlaying = false;
+      _errorMessage = 'Ses yüklenemedi. Bu sure için internet bağlantınızı kontrol ediniz.';
+      _audioFeedbackMessage = 'Ses yüklenemedi. İnternet bağlantınızı kontrol ediniz.';
+    }
 
     // Save bookmark
     await saveLastReadPosition(
@@ -138,20 +242,39 @@ class QuranProvider extends ChangeNotifier {
       ayahNumber: ayah.numberInSurah,
     );
 
+    // Sync with native Android widget
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('current_audio_surah', _currentSurah!.nameTr);
+      await prefs.setInt('current_audio_ayah', ayah.numberInSurah);
+      await prefs.setInt('current_audio_surah_num', _currentSurah!.number);
+      await prefs.setBool('is_audio_playing', _isPlaying);
+      _updateNativeQuranWidget();
+    } catch (_) {}
+
     notifyListeners();
   }
 
   Future<void> pauseAudio() async {
     await _audioPlayer.pause();
     _isPlaying = false;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('is_audio_playing', false);
+      _updateNativeQuranWidget();
+    } catch (_) {}
     notifyListeners();
   }
 
   Future<void> resumeAudio() async {
-    if (_currentAyahIndex != -1) {
-      await _audioPlayer.resume();
-      _isPlaying = true;
-      notifyListeners();
+    if (_currentAyahIndex != -1 && _currentAyahIndex < _ayahs.length) {
+      try {
+        await _audioPlayer.resume();
+        _isPlaying = true;
+        notifyListeners();
+      } catch (_) {
+        await playAyah(_currentAyahIndex);
+      }
     } else if (_ayahs.isNotEmpty) {
       await playAyah(0);
     }
@@ -192,6 +315,212 @@ class QuranProvider extends ChangeNotifier {
       _selectedHafiz = HafizList.getById(savedHafizId);
     }
     notifyListeners();
+  }
+
+  // Favorite Ayahs Methods
+  bool isAyahFavorite(int surahNumber, int ayahNumber) {
+    return _favorites.any(
+      (f) => f.surahNumber == surahNumber && f.ayahNumber == ayahNumber,
+    );
+  }
+
+  Future<bool> toggleFavorite({
+    required int surahNumber,
+    required String surahName,
+    required int ayahNumber,
+    required String textAr,
+    required String textTr,
+  }) async {
+    final existingIndex = _favorites.indexWhere(
+      (f) => f.surahNumber == surahNumber && f.ayahNumber == ayahNumber,
+    );
+
+    bool added = false;
+    if (existingIndex >= 0) {
+      _favorites.removeAt(existingIndex);
+      added = false;
+    } else {
+      _favorites.insert(
+        0,
+        FavoriteAyahModel(
+          surahNumber: surahNumber,
+          surahName: surahName,
+          ayahNumber: ayahNumber,
+          textAr: textAr,
+          textTr: textTr,
+        ),
+      );
+      added = true;
+    }
+
+    notifyListeners();
+    await _saveFavorites();
+    return added;
+  }
+
+  Future<void> loadFavorites() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final list = prefs.getStringList('favorite_ayahs') ?? [];
+      _favorites = list.map((jsonStr) => FavoriteAyahModel.fromJson(jsonStr)).toList();
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error loading favorites: $e');
+    }
+  }
+
+  Future<void> _saveFavorites() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final list = _favorites.map((f) => f.toJson()).toList();
+      await prefs.setStringList('favorite_ayahs', list);
+    } catch (e) {
+      debugPrint('Error saving favorites: $e');
+    }
+  }
+
+  // Pinned Ayah Methods
+  bool isAyahPinned(int surahNumber, int ayahNumber) {
+    if (_pinnedAyah == null) return false;
+    return _pinnedAyah!.surahNumber == surahNumber &&
+        _pinnedAyah!.ayahNumber == ayahNumber;
+  }
+
+  Future<void> pinAyah(FavoriteAyahModel ayah) async {
+    _pinnedAyah = ayah;
+    notifyListeners();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('pinned_ayah', ayah.toJson());
+      await prefs.setString('pinned_arabic', ayah.textAr);
+      await prefs.setString('pinned_turkish', ayah.textTr);
+      await prefs.setString('pinned_surah', ayah.surahName);
+      await prefs.setInt('pinned_ayah_num', ayah.ayahNumber);
+      _updateNativePinnedWidget();
+    } catch (e) {
+      debugPrint('Error saving pinned ayah: $e');
+    }
+  }
+
+  Future<void> unpinAyah() async {
+    _pinnedAyah = null;
+    notifyListeners();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('pinned_ayah');
+      await prefs.remove('pinned_arabic');
+      await prefs.remove('pinned_turkish');
+      await prefs.remove('pinned_surah');
+      await prefs.remove('pinned_ayah_num');
+      _updateNativePinnedWidget();
+    } catch (e) {
+      debugPrint('Error removing pinned ayah: $e');
+    }
+  }
+
+  Future<void> loadPinnedAyah() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jsonStr = prefs.getString('pinned_ayah');
+      if (jsonStr != null && jsonStr.isNotEmpty) {
+        _pinnedAyah = FavoriteAyahModel.fromJson(jsonStr);
+      } else {
+        // Default pinned ayah: İnşirah Suresi 5. Ayet
+        _pinnedAyah = FavoriteAyahModel(
+          surahNumber: 94,
+          surahName: 'İnşirah',
+          ayahNumber: 5,
+          textAr: 'فَإِنَّ مَعَ الْعُسْرِ يُسْرًا',
+          textTr: 'Şüphesiz her güçlükle beraber bir kolaylık vardır.',
+        );
+        // Persist default for native widget
+        await prefs.setString('pinned_arabic', _pinnedAyah!.textAr);
+        await prefs.setString('pinned_turkish', _pinnedAyah!.textTr);
+        await prefs.setString('pinned_surah', _pinnedAyah!.surahName);
+        await prefs.setInt('pinned_ayah_num', _pinnedAyah!.ayahNumber);
+      }
+      _updateNativePinnedWidget();
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error loading pinned ayah: $e');
+    }
+  }
+
+  void _updateNativePinnedWidget() {
+    try {
+      _widgetChannel.invokeMethod('updatePinnedAyahWidget');
+    } catch (e) {
+      debugPrint('Error updating native pinned widget: $e');
+    }
+  }
+
+  void _updateNativeQuranWidget() {
+    try {
+      _widgetChannel.invokeMethod('updateQuranWidget');
+    } catch (e) {
+      debugPrint('Error updating native quran widget: $e');
+    }
+  }
+
+  // Home Screen Quick Audio Controls
+  Future<void> quickTogglePlayFromHome() async {
+    if (_isPlaying) {
+      await pauseAudio();
+      return;
+    }
+
+    if (_currentAyahIndex != -1 && _ayahs.isNotEmpty) {
+      await resumeAudio();
+      return;
+    }
+
+    if (_pinnedAyah != null) {
+      await playPinnedAyahAudio();
+      return;
+    }
+
+    if (_lastSurahNumber != null) {
+      final targetIndex = (_lastAyahNumber != null && _lastAyahNumber! > 0)
+          ? (_lastAyahNumber! - 1)
+          : 0;
+      await loadSurah(_lastSurahNumber!, autoPlayAyahIndex: targetIndex);
+      return;
+    }
+
+    // Default to Fatiha 1:1
+    await loadSurah(1, autoPlayAyahIndex: 0);
+  }
+
+  Future<void> playPinnedAyahAudio() async {
+    if (_pinnedAyah == null) return;
+    final pin = _pinnedAyah!;
+    if (_currentSurah?.number != pin.surahNumber || _ayahs.isEmpty) {
+      await loadSurah(pin.surahNumber);
+    }
+    final targetIndex =
+        _ayahs.indexWhere((a) => a.numberInSurah == pin.ayahNumber);
+    if (targetIndex != -1) {
+      await playAyah(targetIndex);
+    } else if (_ayahs.isNotEmpty) {
+      await playAyah(0);
+    }
+  }
+
+  Future<void> playNextAyah() async {
+    if (_currentSurah == null || _ayahs.isEmpty) {
+      await quickTogglePlayFromHome();
+      return;
+    }
+    if (_currentAyahIndex + 1 < _ayahs.length) {
+      await playAyah(_currentAyahIndex + 1);
+    }
+  }
+
+  Future<void> playPreviousAyah() async {
+    if (_currentSurah == null || _ayahs.isEmpty) return;
+    if (_currentAyahIndex > 0) {
+      await playAyah(_currentAyahIndex - 1);
+    }
   }
 
   @override

@@ -60,25 +60,39 @@ class PrayerTimesModel {
     }
   }
 
-  // Returns next prayer name and remaining duration
+  // Returns next prayer name, current prayer name, remaining duration and progress (0.0 to 1.0)
   Map<String, dynamic> getNextPrayer() {
     final now = DateTime.now();
     final list = asList;
+    final keys = list.keys.toList();
 
     String? nextName;
     DateTime? nextTime;
+    String? currentName;
+    DateTime? currentTime;
 
-    for (var entry in list.entries) {
-      final dt = getPrayerDateTime(entry.value);
+    for (int i = 0; i < keys.length; i++) {
+      final dt = getPrayerDateTime(list[keys[i]]!);
       if (dt != null && dt.isAfter(now)) {
-        nextName = entry.key;
+        nextName = keys[i];
         nextTime = dt;
+        if (i > 0) {
+          currentName = keys[i - 1];
+          currentTime = getPrayerDateTime(list[currentName]!);
+        } else {
+          // before Imsak today, current is yesterday's Yatsı
+          currentName = 'Yatsı';
+          final yatsiDt = getPrayerDateTime(isha);
+          currentTime = yatsiDt?.subtract(const Duration(days: 1));
+        }
         break;
       }
     }
 
     // If all prayers today have passed, next is tomorrow's Fajr
     if (nextName == null || nextTime == null) {
+      currentName = 'Yatsı';
+      currentTime = getPrayerDateTime(isha);
       nextName = 'İmsak';
       final tomorrowFajr = getPrayerDateTime(fajr);
       if (tomorrowFajr != null) {
@@ -88,12 +102,21 @@ class PrayerTimesModel {
       }
     }
 
+    currentTime ??= nextTime.subtract(const Duration(hours: 3));
+    final totalSeconds = nextTime.difference(currentTime).inSeconds;
+    final elapsedSeconds = now.difference(currentTime).inSeconds;
+    double progress = (totalSeconds > 0) ? (elapsedSeconds / totalSeconds) : 0.0;
+    progress = progress.clamp(0.0, 1.0);
+
     final durationLeft = nextTime.difference(now);
     return {
       'name': nextName,
       'time': list[nextName] ?? fajr,
+      'currentName': currentName ?? 'Vakit',
+      'currentTime': list[currentName] ?? '',
       'dateTime': nextTime,
       'remaining': durationLeft,
+      'progress': progress,
     };
   }
 }

@@ -21,6 +21,19 @@ void main() async {
   );
 }
 
+class AppScrollBehavior extends MaterialScrollBehavior {
+  const AppScrollBehavior();
+
+  @override
+  Widget buildOverscrollIndicator(
+    BuildContext context,
+    Widget child,
+    ScrollableDetails details,
+  ) {
+    return child;
+  }
+}
+
 class EzanVaktiApp extends StatelessWidget {
   const EzanVaktiApp({super.key});
 
@@ -29,6 +42,7 @@ class EzanVaktiApp extends StatelessWidget {
     return MaterialApp(
       title: 'Ezan Vakti & Kuran-ı Kerim',
       debugShowCheckedModeBanner: false,
+      scrollBehavior: const AppScrollBehavior(),
       theme: AppTheme.darkTheme,
       home: const HomeScreen(),
     );

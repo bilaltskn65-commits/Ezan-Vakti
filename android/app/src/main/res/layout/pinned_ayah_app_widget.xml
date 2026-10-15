@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_pinned_ayah_container"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_bg"
+    android:orientation="vertical"
+    android:padding="14dp">
+
+    <!-- Header: Pin Icon, Title & Badge -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <ImageView
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:src="@drawable/ic_widget_pin" />
+
+        <TextView
+            android:id="@+id/tv_pinned_title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="7dp"
+            android:layout_weight="1"
+            android:text="Sabitlenen / Günün Ayeti"
+            android:textColor="#F59E0B"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tv_pinned_badge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/widget_tag_bg"
+            android:paddingStart="9dp"
+            android:paddingTop="3dp"
+            android:paddingEnd="9dp"
+            android:paddingBottom="3dp"
+            android:text="İnşirah • 5"
+            android:textColor="#10B981"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <!-- Divider Line -->
+    <ImageView
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="8dp"
+        android:background="#1F364B" />
+
+    <!-- Ayah Content Container -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:gravity="center"
+        android:orientation="vertical">
+
+        <!-- Arabic Calligraphy Text -->
+        <TextView
+            android:id="@+id/tv_pinned_arabic"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:maxLines="3"
+            android:ellipsize="end"
+            android:text="فَإِنَّ مَعَ الْعُسْرِ يُسْرًا"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <!-- Turkish Translation -->
+        <TextView
+            android:id="@+id/tv_pinned_turkish"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:gravity="center"
+            android:maxLines="3"
+            android:ellipsize="end"
+            android:text="&quot;Şüphesiz her güçlükle beraber bir kolaylık vardır.&quot;"
+            android:textColor="#CBD5E1"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+    <!-- Footer Watermark -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:text="Ezan Vakti &amp; Kuran"
+        android:textColor="#475569"
+        android:textSize="9sp" />
+</LinearLayout>

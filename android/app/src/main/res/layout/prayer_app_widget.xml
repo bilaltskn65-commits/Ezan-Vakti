@@ -1,0 +1,333 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_container"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_bg"
+    android:orientation="vertical"
+    android:padding="14dp">
+
+    <!-- Header: App Name, Location & Top Next Badge -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <ImageView
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:src="@drawable/ic_widget_location" />
+
+        <TextView
+            android:id="@+id/tv_widget_location"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
+            android:layout_weight="1"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:text="Ezan Vakti"
+            android:textColor="#F8FAFC"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tv_widget_next"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/widget_tag_bg"
+            android:paddingStart="9dp"
+            android:paddingTop="3dp"
+            android:paddingEnd="9dp"
+            android:paddingBottom="3dp"
+            android:text="Sonraki Vakit"
+            android:textColor="#10B981"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <!-- Divider Line -->
+    <ImageView
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="8dp"
+        android:background="#1F364B" />
+
+    <!-- Hero Card: Upcoming Prayer Spotlight -->
+    <LinearLayout
+        android:id="@+id/layout_widget_hero"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/widget_hero_card_bg"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="12dp"
+        android:paddingTop="8dp"
+        android:paddingEnd="12dp"
+        android:paddingBottom="8dp">
+
+        <ImageView
+            android:layout_width="22dp"
+            android:layout_height="22dp"
+            android:src="@drawable/ic_widget_crescent" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="SIRADAKİ VAKİT"
+                android:textColor="#10B981"
+                android:textSize="9sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tv_widget_hero_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Yatsı • 19:46"
+                android:textColor="#F8FAFC"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/tv_widget_hero_countdown"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/widget_tag_bg"
+            android:paddingStart="10dp"
+            android:paddingTop="4dp"
+            android:paddingEnd="10dp"
+            android:paddingBottom="4dp"
+            android:text="36 dk kaldı"
+            android:textColor="#F59E0B"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <!-- Space between Hero Card and Grid -->
+    <ImageView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+    <!-- 6 Prayer Times Horizontal Grid (Modern Rounded Tiles) -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:orientation="horizontal">
+
+        <!-- İmsak -->
+        <LinearLayout
+            android:id="@+id/pill_imsak"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="2dp"
+            android:layout_marginEnd="2dp"
+            android:background="@drawable/widget_prayer_pill_bg"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:paddingTop="7dp"
+            android:paddingBottom="7dp">
+
+            <TextView
+                android:id="@+id/tv_title_imsak"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="İmsak"
+                android:textColor="#94A3B8"
+                android:textSize="10sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tv_time_imsak"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="--:--"
+                android:textColor="#F8FAFC"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Güneş -->
+        <LinearLayout
+            android:id="@+id/pill_gunes"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="2dp"
+            android:layout_marginEnd="2dp"
+            android:background="@drawable/widget_prayer_pill_bg"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:paddingTop="7dp"
+            android:paddingBottom="7dp">
+
+            <TextView
+                android:id="@+id/tv_title_gunes"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Güneş"
+                android:textColor="#94A3B8"
+                android:textSize="10sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tv_time_gunes"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="--:--"
+                android:textColor="#F8FAFC"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Öğle -->
+        <LinearLayout
+            android:id="@+id/pill_ogle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="2dp"
+            android:layout_marginEnd="2dp"
+            android:background="@drawable/widget_prayer_pill_bg"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:paddingTop="7dp"
+            android:paddingBottom="7dp">
+
+            <TextView
+                android:id="@+id/tv_title_ogle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Öğle"
+                android:textColor="#94A3B8"
+                android:textSize="10sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tv_time_ogle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="--:--"
+                android:textColor="#F8FAFC"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- İkindi -->
+        <LinearLayout
+            android:id="@+id/pill_ikindi"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="2dp"
+            android:layout_marginEnd="2dp"
+            android:background="@drawable/widget_prayer_pill_bg"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:paddingTop="7dp"
+            android:paddingBottom="7dp">
+
+            <TextView
+                android:id="@+id/tv_title_ikindi"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="İkindi"
+                android:textColor="#94A3B8"
+                android:textSize="10sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tv_time_ikindi"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="--:--"
+                android:textColor="#F8FAFC"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Akşam -->
+        <LinearLayout
+            android:id="@+id/pill_aksam"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="2dp"
+            android:layout_marginEnd="2dp"
+            android:background="@drawable/widget_prayer_pill_bg"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:paddingTop="7dp"
+            android:paddingBottom="7dp">
+
+            <TextView
+                android:id="@+id/tv_title_aksam"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Akşam"
+                android:textColor="#94A3B8"
+                android:textSize="10sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tv_time_aksam"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="--:--"
+                android:textColor="#F8FAFC"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Yatsı -->
+        <LinearLayout
+            android:id="@+id/pill_yatsi"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="2dp"
+            android:layout_marginEnd="2dp"
+            android:background="@drawable/widget_prayer_pill_bg"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:paddingTop="7dp"
+            android:paddingBottom="7dp">
+
+            <TextView
+                android:id="@+id/tv_title_yatsi"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Yatsı"
+                android:textColor="#94A3B8"
+                android:textSize="10sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tv_time_yatsi"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="--:--"
+                android:textColor="#F8FAFC"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>

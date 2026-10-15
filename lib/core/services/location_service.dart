@@ -20,12 +20,16 @@ class LocationService {
       return null;
     }
 
-    return await Geolocator.getCurrentPosition(
-      locationSettings: const LocationSettings(
-        accuracy: LocationAccuracy.medium,
-        timeLimit: Duration(seconds: 10),
-      ),
-    );
+    try {
+      return await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.medium,
+          timeLimit: Duration(seconds: 4),
+        ),
+      );
+    } catch (_) {
+      return null;
+    }
   }
 
   static Future<String> getCityFromCoordinates(double lat, double lng) async {

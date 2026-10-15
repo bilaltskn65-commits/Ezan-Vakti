@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Ezan Vakti &amp; Kuran</string>
+    <string name="widget_name">Ezan Vakitleri &amp; Namaz Sayacı</string>
+    <string name="widget_quran_audio_name">Kuran-ı Kerim Dinle</string>
+    <string name="widget_quran_audio_desc">Ana ekrandan tek dokunuşla Kuran dinleme</string>
+    <string name="widget_pinned_ayah_name">Sabitlenen / Günün Ayeti</string>
+    <string name="widget_pinned_ayah_desc">Günün veya sabitlenen ayetin Arapça ve meali</string>
+</resources>

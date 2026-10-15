@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/prayer_provider.dart';
 import '../core/constants/app_colors.dart';
+import '../widgets/prayer_countdown_widget.dart';
+import '../widgets/app_widgets_modal.dart';
 import 'location_search_modal.dart';
 
 class PrayerTimesScreen extends StatelessWidget {
@@ -16,10 +18,15 @@ class PrayerTimesScreen extends StatelessWidget {
       backgroundColor: AppColors.bgDark1,
       appBar: AppBar(
         title: const Text(
-          'Namaz Vakitleri',
+          'Ezan Vakti & Kuran',
           style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary),
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.widgets_outlined, color: AppColors.emeraldAccent),
+            tooltip: 'Ana Ekran Widget\'ları',
+            onPressed: () => AppWidgetsModal.show(context),
+          ),
           IconButton(
             icon: const Icon(Icons.location_on, color: AppColors.goldPrimary),
             tooltip: 'Konum Değiştir',
@@ -48,9 +55,18 @@ class PrayerTimesScreen extends StatelessWidget {
                     ],
                   ),
                 )
-              : SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  child: Column(
+              : RefreshIndicator(
+                  color: AppColors.goldGlow,
+                  backgroundColor: AppColors.cardBg,
+                  onRefresh: () async {
+                    await prayerProvider.fetchPrayerTimesWithAutoLocation();
+                  },
+                  child: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(
+                      parent: ClampingScrollPhysics(),
+                    ),
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 95),
+                    child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       // Location Bar Button
@@ -99,109 +115,12 @@ class PrayerTimesScreen extends StatelessWidget {
 
                       const SizedBox(height: 16),
 
-                      // Next Prayer Countdown Hero Card
-                      Builder(builder: (context) {
-                        final nextInfo = prayerTimes.getNextPrayer();
-                        final String nextName = nextInfo['name'];
-                        final String nextTimeStr = nextInfo['time'];
-                        final Duration remaining = nextInfo['remaining'];
-
-                        final hours = remaining.inHours.toString().padLeft(2, '0');
-                        final minutes =
-                            (remaining.inMinutes % 60).toString().padLeft(2, '0');
-                        final seconds =
-                            (remaining.inSeconds % 60).toString().padLeft(2, '0');
-
-                        return Container(
-                          padding: const EdgeInsets.all(24),
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [AppColors.bgDark3, AppColors.emeraldDark],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            borderRadius: BorderRadius.circular(24),
-                            border: Border.all(
-                                color: AppColors.goldPrimary.withValues(alpha: 0.6)),
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppColors.emeraldDark.withValues(alpha: 0.5),
-                                blurRadius: 20,
-                                spreadRadius: 2,
-                              ),
-                            ],
-                          ),
-                          child: Column(
-                            children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  const Icon(Icons.access_time_filled,
-                                      color: AppColors.goldGlow, size: 20),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    'Sonraki Vakit: $nextName ($nextTimeStr)',
-                                    style: const TextStyle(
-                                      color: AppColors.goldGlow,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 16),
-                              // Countdown Timer Display
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  _buildTimeBox(hours, 'SAAT'),
-                                  const Text(' : ',
-                                      style: TextStyle(
-                                          color: AppColors.goldPrimary,
-                                          fontSize: 28,
-                                          fontWeight: FontWeight.bold)),
-                                  _buildTimeBox(minutes, 'DAKİKA'),
-                                  const Text(' : ',
-                                      style: TextStyle(
-                                          color: AppColors.goldPrimary,
-                                          fontSize: 28,
-                                          fontWeight: FontWeight.bold)),
-                                  _buildTimeBox(seconds, 'SANİYE'),
-                                ],
-                              ),
-                              const SizedBox(height: 16),
-                              Container(
-                                padding:
-                                    const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                                decoration: BoxDecoration(
-                                  color: AppColors.bgDark1.withValues(alpha: 0.6),
-                                  borderRadius: BorderRadius.circular(20),
-                                  border: Border.all(color: AppColors.emeraldAccent),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: const [
-                                    Icon(Icons.notifications_active,
-                                        color: AppColors.emeraldAccent, size: 16),
-                                    SizedBox(width: 6),
-                                    Text(
-                                      '45 dakika kala bildirim aktif',
-                                      style: TextStyle(
-                                        color: AppColors.emeraldAccent,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      }),
+                      // 1. Ana ekranda ezana ne kadar kaldığını gösteren widget (Canlı saniye sayaçlı & ilerleme çubuklu)
+                      PrayerCountdownWidget(prayerTimes: prayerTimes),
 
                       const SizedBox(height: 24),
 
+                      // Günün Vakitleri Başlığı
                       const Text(
                         'Bugünün Vakitleri',
                         style: TextStyle(
@@ -245,8 +164,7 @@ class PrayerTimesScreen extends StatelessWidget {
 
                         return Container(
                           margin: const EdgeInsets.only(bottom: 12),
-                          padding:
-                              const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                           decoration: BoxDecoration(
                             color: isNext
                                 ? AppColors.emeraldDark.withValues(alpha: 0.6)
@@ -260,8 +178,7 @@ class PrayerTimesScreen extends StatelessWidget {
                           child: Row(
                             children: [
                               CircleAvatar(
-                                backgroundColor:
-                                    isNext ? AppColors.goldGlow : AppColors.bgDark3,
+                                backgroundColor: isNext ? AppColors.goldGlow : AppColors.bgDark3,
                                 child: Icon(
                                   icon,
                                   color: isNext ? AppColors.bgDark1 : AppColors.goldPrimary,
@@ -273,17 +190,14 @@ class PrayerTimesScreen extends StatelessWidget {
                                 style: TextStyle(
                                   color: AppColors.textPrimary,
                                   fontSize: 17,
-                                  fontWeight:
-                                      isNext ? FontWeight.bold : FontWeight.w600,
+                                  fontWeight: isNext ? FontWeight.bold : FontWeight.w600,
                                 ),
                               ),
                               const Spacer(),
                               Text(
                                 timeStr,
                                 style: TextStyle(
-                                  color: isNext
-                                      ? AppColors.goldGlow
-                                      : AppColors.textPrimary,
+                                  color: isNext ? AppColors.goldGlow : AppColors.textPrimary,
                                   fontSize: 20,
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -292,42 +206,11 @@ class PrayerTimesScreen extends StatelessWidget {
                           ),
                         );
                       }),
+                      const SizedBox(height: 16),
                     ],
                   ),
                 ),
-    );
-  }
-
-  Widget _buildTimeBox(String value, String label) {
-    return Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-          decoration: BoxDecoration(
-            color: AppColors.bgDark1,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.goldPrimary.withValues(alpha: 0.8)),
-          ),
-          child: Text(
-            value,
-            style: const TextStyle(
-              color: AppColors.goldGlow,
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: const TextStyle(
-            color: AppColors.textSecondary,
-            fontSize: 10,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ],
+              ),
     );
   }
 }
-

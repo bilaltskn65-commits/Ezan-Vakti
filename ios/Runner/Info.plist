@@ -66,5 +66,9 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Ayet kartı görsellerini fotoğraf galerinize kaydetmek için izin gereklidir.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Ayet kartı görsellerini fotoğraf galerinize kaydetmek için izin gereklidir.</string>
 </dict>
 </plist>

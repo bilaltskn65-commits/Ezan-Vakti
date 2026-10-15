@@ -6,7 +6,7 @@ class SurahModel {
   final int numberOfAyahs;
   final String revelationType; // Meccan / Medinan
 
-  SurahModel({
+  const SurahModel({
     required this.number,
     required this.nameAr,
     required this.nameTr,

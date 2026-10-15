@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/prayer_times_model.dart';
 import '../core/services/prayer_service.dart';
@@ -7,6 +8,8 @@ import '../core/services/location_service.dart';
 import '../core/services/notification_service.dart';
 
 class PrayerProvider extends ChangeNotifier {
+  static const MethodChannel _widgetChannel = MethodChannel('com.ezanvakti.app/widget');
+
   PrayerTimesModel? _prayerTimes;
   bool _isLoading = false;
   String _errorMessage = '';
@@ -81,9 +84,11 @@ class PrayerProvider extends ChangeNotifier {
 
       if (_prayerTimes != null) {
         await NotificationService.schedulePrayerNotifications(_prayerTimes!);
+        await _updateNativeWidget();
       }
     } catch (e) {
       _errorMessage = 'Namaz vakitleri alınamadı: $e';
+      _prayerTimes ??= PrayerService.getFallbackTimes(_locationName);
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -109,13 +114,21 @@ class PrayerProvider extends ChangeNotifier {
 
       if (_prayerTimes != null) {
         await NotificationService.schedulePrayerNotifications(_prayerTimes!);
+        await _updateNativeWidget();
       }
     } catch (e) {
       _errorMessage = 'Seçilen şehir için vakitler alınamadı.';
+      _prayerTimes ??= PrayerService.getFallbackTimes('$city, $country');
     } finally {
       _isLoading = false;
       notifyListeners();
     }
+  }
+
+  Future<void> _updateNativeWidget() async {
+    try {
+      await _widgetChannel.invokeMethod('updateWidget');
+    } catch (_) {}
   }
 }
 

@@ -51,12 +51,12 @@ class HafizList {
       description: 'Mekke Mescid-i Haram İmamı, huzur veren berrak ses',
     ),
     HafizModel(
-      id: 'ghamdi',
-      nameTr: 'Saad el-Gamdi',
-      nameAr: 'سعد الغامدي',
-      serverPath: 'Ghamadi_40kbps',
-      imageAsset: 'assets/hafiz/ghamdi.png',
-      description: 'Suudi Arabistanlı tanınmış hafız, akıcı ve dinlendirici makam',
+      id: 'basfar',
+      nameTr: 'Abdullah Basfer',
+      nameAr: 'عبد الله بصفر',
+      serverPath: 'Abdullah_Basfar_192kbps',
+      imageAsset: 'assets/hafiz/basfar.png',
+      description: 'Cidde İmamı, 192kbps stüdyo kalitesi ve dinlendirici tecvid',
     ),
     HafizModel(
       id: 'shatri',
@@ -91,12 +91,12 @@ class HafizList {
       description: 'Kabe eski başımamı, hızlı ve ritmik okuyuş ekolü',
     ),
     HafizModel(
-      id: 'ismail',
-      nameTr: 'Mustafa İsmail',
-      nameAr: 'مصطفى إسماعيل',
-      serverPath: 'Mustafa_Ismail_48kbps',
-      imageAsset: 'assets/hafiz/ismail.png',
-      description: 'Klasik Mısır makam üstadı, tarihi ve eşsiz ses',
+      id: 'sudais',
+      nameTr: 'Abdurrahman es-Sudeys',
+      nameAr: 'عبد الرحمن السديس',
+      serverPath: 'Abdurrahmaan_As-Sudais_192kbps',
+      imageAsset: 'assets/hafiz/sudais.png',
+      description: 'Kâbe Başimamı, 192kbps berrak stüdyo kaydı ve coşkulu kıraat',
     ),
   ];
 
