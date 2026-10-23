@@ -3,30 +3,33 @@ import 'package:geolocator/geolocator.dart';
 
 class LocationService {
   static Future<Position?> getCurrentPosition() async {
-    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      return null;
-    }
-
-    LocationPermission permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
+    try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled()
+          .timeout(const Duration(seconds: 2));
+      if (!serviceEnabled) {
         return null;
       }
-    }
 
-    if (permission == LocationPermission.deniedForever) {
-      return null;
-    }
+      LocationPermission permission = await Geolocator.checkPermission()
+          .timeout(const Duration(seconds: 2));
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission()
+            .timeout(const Duration(seconds: 4));
+        if (permission == LocationPermission.denied) {
+          return null;
+        }
+      }
 
-    try {
+      if (permission == LocationPermission.deniedForever) {
+        return null;
+      }
+
       return await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(
           accuracy: LocationAccuracy.medium,
-          timeLimit: Duration(seconds: 4),
+          timeLimit: Duration(seconds: 3),
         ),
-      );
+      ).timeout(const Duration(seconds: 4));
     } catch (_) {
       return null;
     }
@@ -35,7 +38,9 @@ class LocationService {
   static Future<String> getCityFromCoordinates(double lat, double lng) async {
     try {
       final geocoding = Geocoding();
-      final placemarks = await geocoding.placemarkFromCoordinates(lat, lng);
+      final placemarks = await geocoding
+          .placemarkFromCoordinates(lat, lng)
+          .timeout(const Duration(seconds: 3));
       if (placemarks.isNotEmpty) {
         final place = placemarks.first;
         return place.administrativeArea ??

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../providers/quran_provider.dart';
 import '../core/constants/app_colors.dart';
+import '../core/localization/localization_extension.dart';
 import 'ayah_post_generator_screen.dart';
 import 'quran_detail_screen.dart';
 
@@ -17,9 +18,9 @@ class FavoriteAyahsScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.bgDark1,
       appBar: AppBar(
-        title: const Text(
-          'Beğenilen Ayetler',
-          style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+        title: Text(
+          context.tr('fav_title'),
+          style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary),
         ),
       ),
       body: favorites.isEmpty
@@ -44,18 +45,18 @@ class FavoriteAyahsScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 20),
-                    const Text(
-                      'Henüz Kayıtlı Ayet Yok',
-                      style: TextStyle(
+                    Text(
+                      context.tr('fav_empty_title'),
+                      style: const TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
                         color: AppColors.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 10),
-                    const Text(
-                      'Kuran-ı Kerim sayfalarında beğendiğiniz ayetlerin yanındaki kalp veya yer imi butonuna basarak buraya ekleyebilirsiniz.',
-                      style: TextStyle(
+                    Text(
+                      context.tr('fav_empty_sub'),
+                      style: const TextStyle(
                         color: AppColors.textSecondary,
                         fontSize: 14,
                         height: 1.5,
@@ -103,7 +104,7 @@ class FavoriteAyahsScreen extends StatelessWidget {
                               border: Border.all(color: AppColors.goldPrimary),
                             ),
                             child: Text(
-                              '${fav.surahName} • ${fav.ayahNumber}. Ayet',
+                              '${fav.surahName} • ${context.tr('ayah_number_format', {'number': '${fav.ayahNumber}'})}',
                               style: const TextStyle(
                                 color: AppColors.goldGlow,
                                 fontWeight: FontWeight.bold,
@@ -124,15 +125,24 @@ class FavoriteAyahsScreen extends StatelessWidget {
                                     color: isPinned ? AppColors.goldGlow : AppColors.textSecondary,
                                     size: 22,
                                   ),
-                                  tooltip: isPinned ? 'Sabitlemeyi Kaldır' : 'Ana Ekrana Sabitle',
+                                  tooltip: isPinned ? context.tr('fav_unpin_tooltip') : context.tr('fav_pin_tooltip'),
                                   onPressed: () async {
                                     if (isPinned) {
                                       await quranProvider.unpinAyah();
                                       if (context.mounted) {
                                         ScaffoldMessenger.of(context).showSnackBar(
-                                          const SnackBar(
-                                            content: Text('Ayet ana ekrandan kaldırıldı'),
-                                            duration: Duration(seconds: 1),
+                                          SnackBar(
+                                            content: Text(
+                                              context.tr('fav_unpinned_snack'),
+                                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
+                                            ),
+                                            backgroundColor: AppColors.bgDark3,
+                                            behavior: SnackBarBehavior.floating,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(12),
+                                              side: const BorderSide(color: AppColors.glassBorder),
+                                            ),
+                                            duration: const Duration(seconds: 2),
                                           ),
                                         );
                                       }
@@ -141,8 +151,19 @@ class FavoriteAyahsScreen extends StatelessWidget {
                                       if (context.mounted) {
                                         ScaffoldMessenger.of(context).showSnackBar(
                                           SnackBar(
-                                            content: Text('📌 ${fav.surahName} ${fav.ayahNumber}. Ayet ana ekrana sabitlendi!'),
-                                            backgroundColor: AppColors.emeraldDark,
+                                            content: Text(
+                                              context.tr('fav_pinned_snack', {
+                                                'surah': fav.surahName,
+                                                'number': '${fav.ayahNumber}',
+                                              }),
+                                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
+                                            ),
+                                            backgroundColor: AppColors.bgDark3,
+                                            behavior: SnackBarBehavior.floating,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(12),
+                                              side: BorderSide(color: AppColors.goldGlow.withValues(alpha: 0.5)),
+                                            ),
                                             duration: const Duration(seconds: 2),
                                           ),
                                         );
@@ -153,7 +174,7 @@ class FavoriteAyahsScreen extends StatelessWidget {
                               }),
                               IconButton(
                                 icon: const Icon(Icons.share, color: AppColors.goldPrimary, size: 22),
-                                tooltip: 'Post Oluştur',
+                                tooltip: context.tr('fav_create_post'),
                                 onPressed: () {
                                   Navigator.push(
                                     context,
@@ -171,7 +192,7 @@ class FavoriteAyahsScreen extends StatelessWidget {
                               ),
                               IconButton(
                                 icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 22),
-                                tooltip: 'Favorilerden Kaldır',
+                                tooltip: context.tr('fav_remove'),
                                 onPressed: () async {
                                   await quranProvider.toggleFavorite(
                                     surahNumber: fav.surahNumber,
@@ -182,9 +203,18 @@ class FavoriteAyahsScreen extends StatelessWidget {
                                   );
                                   if (context.mounted) {
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text('Ayet favorilerden kaldırıldı'),
-                                        duration: Duration(seconds: 1),
+                                      SnackBar(
+                                        content: Text(
+                                          context.tr('fav_removed_snack'),
+                                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
+                                        ),
+                                        backgroundColor: AppColors.bgDark3,
+                                        behavior: SnackBarBehavior.floating,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(12),
+                                          side: const BorderSide(color: AppColors.glassBorder),
+                                        ),
+                                        duration: const Duration(seconds: 2),
                                       ),
                                     );
                                   }
@@ -230,9 +260,9 @@ class FavoriteAyahsScreen extends StatelessWidget {
                           TextButton.icon(
                             style: TextButton.styleFrom(padding: EdgeInsets.zero),
                             icon: const Icon(Icons.menu_book, color: AppColors.emeraldAccent, size: 18),
-                            label: const Text(
-                              'Surede Gör',
-                              style: TextStyle(color: AppColors.emeraldAccent, fontSize: 13),
+                            label: Text(
+                              context.tr('fav_read_surah'),
+                              style: const TextStyle(color: AppColors.emeraldAccent, fontSize: 13),
                             ),
                             onPressed: () {
                               Navigator.push(
@@ -255,9 +285,9 @@ class FavoriteAyahsScreen extends StatelessWidget {
                               side: const BorderSide(color: AppColors.goldPrimary, width: 0.8),
                             ),
                             icon: const Icon(Icons.auto_awesome, size: 16),
-                            label: const Text(
-                              'Post Oluştur',
-                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                            label: Text(
+                              context.tr('fav_create_post'),
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
                             ),
                             onPressed: () {
                               Navigator.push(

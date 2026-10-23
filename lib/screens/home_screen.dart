@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../core/constants/app_colors.dart';
+import '../core/services/notification_service.dart';
+import '../providers/locale_provider.dart';
 import 'prayer_times_screen.dart';
 import 'quran_list_screen.dart';
 import 'qibla_screen.dart';
 import 'asma_screen.dart';
 import 'favorite_ayahs_screen.dart';
+import 'settings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -16,16 +20,27 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
 
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      NotificationService.requestPermissions();
+    });
+  }
+
   final List<Widget> _pages = const [
     PrayerTimesScreen(),
     QuranListScreen(),
     QiblaScreen(),
     AsmaScreen(),
     FavoriteAyahsScreen(),
+    SettingsScreen(),
   ];
 
   @override
   Widget build(BuildContext context) {
+    final loc = context.watch<LocaleProvider>();
+
     return Scaffold(
       body: IndexedStack(
         index: _currentIndex,
@@ -41,6 +56,7 @@ class _HomeScreenState extends State<HomeScreen> {
           child: BottomNavigationBar(
             currentIndex: _currentIndex,
             type: BottomNavigationBarType.fixed,
+            iconSize: 22,
             onTap: (index) {
               setState(() {
                 _currentIndex = index;
@@ -50,33 +66,38 @@ class _HomeScreenState extends State<HomeScreen> {
             elevation: 0,
             selectedItemColor: AppColors.goldGlow,
             unselectedItemColor: AppColors.textSecondary,
-            selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
-            unselectedLabelStyle: const TextStyle(fontSize: 10),
-            items: const [
+            selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 10),
+            unselectedLabelStyle: const TextStyle(fontSize: 9),
+            items: [
               BottomNavigationBarItem(
-                icon: Icon(Icons.access_time_outlined),
-                activeIcon: Icon(Icons.access_time_filled, color: AppColors.goldGlow),
-                label: 'Vakitler',
+                icon: const Icon(Icons.access_time_outlined),
+                activeIcon: const Icon(Icons.access_time_filled, color: AppColors.goldGlow),
+                label: loc.translate('nav_prayers'),
               ),
               BottomNavigationBarItem(
-                icon: Icon(Icons.menu_book_outlined),
-                activeIcon: Icon(Icons.menu_book, color: AppColors.goldGlow),
-                label: 'Kuran',
+                icon: const Icon(Icons.menu_book_outlined),
+                activeIcon: const Icon(Icons.menu_book, color: AppColors.goldGlow),
+                label: loc.translate('nav_quran'),
               ),
               BottomNavigationBarItem(
-                icon: Icon(Icons.explore_outlined),
-                activeIcon: Icon(Icons.explore, color: AppColors.goldGlow),
-                label: 'Kıble',
+                icon: const Icon(Icons.explore_outlined),
+                activeIcon: const Icon(Icons.explore, color: AppColors.goldGlow),
+                label: loc.translate('nav_qibla'),
               ),
               BottomNavigationBarItem(
-                icon: Icon(Icons.stars_outlined),
-                activeIcon: Icon(Icons.stars, color: AppColors.goldGlow),
-                label: 'Esma-ül Hüsna',
+                icon: const Icon(Icons.stars_outlined),
+                activeIcon: const Icon(Icons.stars, color: AppColors.goldGlow),
+                label: loc.translate('nav_asma'),
               ),
               BottomNavigationBarItem(
-                icon: Icon(Icons.bookmark_border),
-                activeIcon: Icon(Icons.bookmark, color: AppColors.goldGlow),
-                label: 'Beğenilenler',
+                icon: const Icon(Icons.bookmark_border),
+                activeIcon: const Icon(Icons.bookmark, color: AppColors.goldGlow),
+                label: loc.translate('nav_favorites'),
+              ),
+              BottomNavigationBarItem(
+                icon: const Icon(Icons.settings_outlined),
+                activeIcon: const Icon(Icons.settings, color: AppColors.goldGlow),
+                label: loc.translate('nav_settings'),
               ),
             ],
           ),

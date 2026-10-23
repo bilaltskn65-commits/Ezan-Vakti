@@ -6,6 +6,8 @@ import 'package:flutter_compass/flutter_compass.dart';
 import 'package:provider/provider.dart';
 import '../core/constants/app_colors.dart';
 import '../core/constants/turkey_cities.dart';
+import '../core/services/location_service.dart';
+import '../core/localization/localization_extension.dart';
 import '../providers/prayer_provider.dart';
 
 class QiblaScreen extends StatefulWidget {
@@ -21,6 +23,11 @@ class _QiblaScreenState extends State<QiblaScreen> with SingleTickerProviderStat
   static const double kaabaLng = 39.826206;
 
   TurkeyCity _selectedCity = TurkeyCities.all[33]; // Default: İstanbul (plate 34)
+  double? _gpsLat;
+  double? _gpsLng;
+  bool _isUsingGps = false;
+  bool _isLoadingGps = false;
+
   double _manualHeading = 0.0; // Fallback manual dial heading in degrees
   double _smoothHeading = 0.0; // Filtered compass heading from device sensor
   bool _hasSensor = false;
@@ -41,7 +48,48 @@ class _QiblaScreenState extends State<QiblaScreen> with SingleTickerProviderStat
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _syncWithPrayerProvider();
+      _fetchGpsLocation();
     });
+  }
+
+  Future<void> _fetchGpsLocation() async {
+    if (_isLoadingGps) return;
+    setState(() {
+      _isLoadingGps = true;
+    });
+
+    try {
+      final pos = await LocationService.getCurrentPosition();
+      if (pos != null && mounted) {
+        setState(() {
+          _gpsLat = pos.latitude;
+          _gpsLng = pos.longitude;
+          _isUsingGps = true;
+        });
+
+        // Exact reverse geocoding to keep city name in sync
+        final cityName = await LocationService.getCityFromCoordinates(pos.latitude, pos.longitude);
+        if (mounted) {
+          for (final city in TurkeyCities.all) {
+            if (cityName.toLowerCase().contains(city.name.toLowerCase()) ||
+                city.name.toLowerCase().contains(cityName.toLowerCase())) {
+              setState(() {
+                _selectedCity = city;
+              });
+              break;
+            }
+          }
+        }
+      }
+    } catch (_) {
+      // Fallback stays on city
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoadingGps = false;
+        });
+      }
+    }
   }
 
   void _initCompass() {
@@ -120,15 +168,15 @@ class _QiblaScreenState extends State<QiblaScreen> with SingleTickerProviderStat
     return r * c;
   }
 
-  String _getDirectionName(double angle) {
-    if (angle >= 337.5 || angle < 22.5) return 'Kuzey (N)';
-    if (angle >= 22.5 && angle < 67.5) return 'Kuzeydoğu (NE)';
-    if (angle >= 67.5 && angle < 112.5) return 'Doğu (E)';
-    if (angle >= 112.5 && angle < 157.5) return 'Güneydoğu (SE)';
-    if (angle >= 157.5 && angle < 202.5) return 'Güney (S)';
-    if (angle >= 202.5 && angle < 247.5) return 'Güneybatı (SW)';
-    if (angle >= 247.5 && angle < 292.5) return 'Batı (W)';
-    return 'Kuzeybatı (NW)';
+  String _getDirectionName(double angle, BuildContext ctx) {
+    if (angle >= 337.5 || angle < 22.5) return ctx.tr('dir_name_n');
+    if (angle >= 22.5 && angle < 67.5) return ctx.tr('dir_name_ne');
+    if (angle >= 67.5 && angle < 112.5) return ctx.tr('dir_name_e');
+    if (angle >= 112.5 && angle < 157.5) return ctx.tr('dir_name_se');
+    if (angle >= 157.5 && angle < 202.5) return ctx.tr('dir_name_s');
+    if (angle >= 202.5 && angle < 247.5) return ctx.tr('dir_name_sw');
+    if (angle >= 247.5 && angle < 292.5) return ctx.tr('dir_name_w');
+    return ctx.tr('dir_name_nw');
   }
 
   void _showCitySelectModal() {
@@ -160,9 +208,9 @@ class _QiblaScreenState extends State<QiblaScreen> with SingleTickerProviderStat
                     ),
                   ),
                   const SizedBox(height: 14),
-                  const Text(
-                    'Kıble İçin Şehir Seçin',
-                    style: TextStyle(
+                  Text(
+                    context.tr('qibla_city_select_title'),
+                    style: const TextStyle(
                       color: AppColors.textPrimary,
                       fontWeight: FontWeight.bold,
                       fontSize: 18,
@@ -174,7 +222,7 @@ class _QiblaScreenState extends State<QiblaScreen> with SingleTickerProviderStat
                     child: TextField(
                       style: const TextStyle(color: AppColors.textPrimary),
                       decoration: InputDecoration(
-                        hintText: 'Şehir ara...',
+                        hintText: context.tr('qibla_city_search_hint'),
                         hintStyle: const TextStyle(color: AppColors.textSecondary),
                         prefixIcon: const Icon(Icons.search, color: AppColors.goldPrimary),
                         filled: true,
@@ -224,6 +272,7 @@ class _QiblaScreenState extends State<QiblaScreen> with SingleTickerProviderStat
                           onTap: () {
                             setState(() {
                               _selectedCity = c;
+                              _isUsingGps = false; // Kullanıcı manuel şehir seçtiğinde şehir baz alınır
                             });
                             Navigator.pop(ctx);
                           },
@@ -243,8 +292,10 @@ class _QiblaScreenState extends State<QiblaScreen> with SingleTickerProviderStat
   @override
   Widget build(BuildContext context) {
     final activeHeading = _hasSensor ? _smoothHeading : _manualHeading;
-    final qiblaBearing = _calculateQiblaBearing(_selectedCity.lat, _selectedCity.lng);
-    final distance = _calculateDistanceToKaaba(_selectedCity.lat, _selectedCity.lng);
+    final effectiveLat = (_isUsingGps && _gpsLat != null) ? _gpsLat! : _selectedCity.lat;
+    final effectiveLng = (_isUsingGps && _gpsLng != null) ? _gpsLng! : _selectedCity.lng;
+    final qiblaBearing = _calculateQiblaBearing(effectiveLat, effectiveLng);
+    final distance = _calculateDistanceToKaaba(effectiveLat, effectiveLng);
 
     // Difference between user orientation heading (top of phone) and Kaaba bearing
     final angleDiff = ((qiblaBearing - activeHeading + 540) % 360) - 180;
@@ -261,14 +312,14 @@ class _QiblaScreenState extends State<QiblaScreen> with SingleTickerProviderStat
     return Scaffold(
       backgroundColor: AppColors.bgDark1,
       appBar: AppBar(
-        title: const Text(
-          'Kıble Pusulası',
-          style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+        title: Text(
+          context.tr('qibla_title'),
+          style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary),
         ),
         actions: [
           IconButton(
             icon: const Icon(Icons.tune, color: AppColors.goldPrimary),
-            tooltip: 'Hizala',
+            tooltip: context.tr('qibla_align_tooltip'),
             onPressed: () {
               setState(() {
                 _manualHeading = qiblaBearing; // Auto-align with one click
@@ -284,36 +335,116 @@ class _QiblaScreenState extends State<QiblaScreen> with SingleTickerProviderStat
           children: [
             const SizedBox(height: 12),
 
-            // City Selector Chip
+            // Location Header: City Selector + GPS Mode Toggle
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: InkWell(
-                onTap: _showCitySelectModal,
-                borderRadius: BorderRadius.circular(16),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: AppColors.cardBg,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppColors.goldPrimary.withValues(alpha: 0.5)),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: AppColors.cardBg,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: _isUsingGps ? AppColors.emeraldAccent.withValues(alpha: 0.6) : AppColors.goldPrimary.withValues(alpha: 0.5),
+                    width: _isUsingGps ? 1.5 : 1.0,
                   ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.location_on, color: AppColors.goldGlow, size: 20),
-                      const SizedBox(width: 8),
-                      Text(
-                        '${_selectedCity.name} (${_selectedCity.plate.toString().padLeft(2, '0')})',
-                        style: const TextStyle(
-                          color: AppColors.textPrimary,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: InkWell(
+                        onTap: _showCitySelectModal,
+                        borderRadius: BorderRadius.circular(10),
+                        child: Row(
+                          children: [
+                            Icon(
+                              _isUsingGps ? Icons.my_location : Icons.location_city,
+                              color: _isUsingGps ? AppColors.emeraldAccent : AppColors.goldGlow,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Text(
+                                        _selectedCity.name,
+                                        style: const TextStyle(
+                                          color: AppColors.textPrimary,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 15,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      const Icon(Icons.arrow_drop_down, color: AppColors.textSecondary, size: 18),
+                                    ],
+                                  ),
+                                  Text(
+                                    _isUsingGps
+                                        ? context.tr('qibla_exact_gps', {
+                                            'lat': effectiveLat.toStringAsFixed(3),
+                                            'lng': effectiveLng.toStringAsFixed(3),
+                                          })
+                                        : context.tr('qibla_city_center', {
+                                            'plate': _selectedCity.plate.toString().padLeft(2, '0'),
+                                          }),
+                                    style: TextStyle(
+                                      color: _isUsingGps ? AppColors.emeraldAccent : AppColors.textSecondary,
+                                      fontSize: 11,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(width: 6),
-                      const Icon(Icons.keyboard_arrow_down, color: AppColors.goldGlow, size: 20),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(width: 8),
+                    // GPS Toggle / Refresh Button
+                    InkWell(
+                      onTap: _fetchGpsLocation,
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: _isUsingGps
+                              ? AppColors.emeraldDark.withValues(alpha: 0.7)
+                              : AppColors.goldPrimary.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: _isUsingGps ? AppColors.emeraldAccent : AppColors.goldPrimary.withValues(alpha: 0.5),
+                          ),
+                        ),
+                        child: _isLoadingGps
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.goldGlow),
+                              )
+                            : Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    _isUsingGps ? Icons.check : Icons.gps_fixed,
+                                    size: 14,
+                                    color: _isUsingGps ? AppColors.emeraldAccent : AppColors.goldGlow,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    _isUsingGps ? context.tr('qibla_gps_active') : context.tr('qibla_gps_get'),
+                                    style: TextStyle(
+                                      color: _isUsingGps ? AppColors.emeraldAccent : AppColors.goldGlow,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -346,8 +477,11 @@ class _QiblaScreenState extends State<QiblaScreen> with SingleTickerProviderStat
                   const SizedBox(width: 10),
                   Text(
                     isAligned
-                        ? 'KIBLE YÖNÜNDESİNİZ (TAM HİZA)'
-                        : 'Kıbleye Kalan Açı: ${angleDiff.abs().toStringAsFixed(0)}° ${angleDiff > 0 ? "Sağda" : "Solda"}',
+                        ? context.tr('qibla_aligned')
+                        : context.tr('qibla_remaining_angle', {
+                            'angle': angleDiff.abs().toStringAsFixed(0),
+                            'dir': angleDiff > 0 ? context.tr('dir_right') : context.tr('dir_left'),
+                          }),
                     style: TextStyle(
                       color: isAligned ? AppColors.emeraldAccent : AppColors.textPrimary,
                       fontWeight: FontWeight.bold,
@@ -416,44 +550,44 @@ class _QiblaScreenState extends State<QiblaScreen> with SingleTickerProviderStat
                           alignment: Alignment.center,
                           children: [
                             // Cardinal Directions (N, E, S, W)
-                            const Positioned(
+                            Positioned(
                               top: 10,
                               child: Text(
-                                'K',
-                                style: TextStyle(
+                                context.tr('qibla_cardinal_n'),
+                                style: const TextStyle(
                                   color: Colors.redAccent,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 16,
                                 ),
                               ),
                             ),
-                            const Positioned(
+                            Positioned(
                               right: 12,
                               child: Text(
-                                'D',
-                                style: TextStyle(
+                                context.tr('qibla_cardinal_e'),
+                                style: const TextStyle(
                                   color: AppColors.textSecondary,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 14,
                                 ),
                               ),
                             ),
-                            const Positioned(
+                            Positioned(
                               bottom: 10,
                               child: Text(
-                                'G',
-                                style: TextStyle(
+                                context.tr('qibla_cardinal_s'),
+                                style: const TextStyle(
                                   color: AppColors.textSecondary,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 14,
                                 ),
                               ),
                             ),
-                            const Positioned(
+                            Positioned(
                               left: 12,
                               child: Text(
-                                'B',
-                                style: TextStyle(
+                                context.tr('qibla_cardinal_w'),
+                                style: const TextStyle(
                                   color: AppColors.textSecondary,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 14,
@@ -541,7 +675,7 @@ class _QiblaScreenState extends State<QiblaScreen> with SingleTickerProviderStat
                               ),
                             ),
                             Text(
-                              _getDirectionName(activeHeading).split(' ').first,
+                              _getDirectionName(activeHeading, context).split(' ').first,
                               style: const TextStyle(
                                 color: AppColors.textSecondary,
                                 fontSize: 10,
@@ -572,8 +706,8 @@ class _QiblaScreenState extends State<QiblaScreen> with SingleTickerProviderStat
             const SizedBox(height: 10),
             Text(
               _hasSensor
-                  ? 'Telefonunuzun üst kısmını Kabe ikonuna doğru çeviriniz (Google Maps gibi).'
-                  : 'Sensör bulunamadı; pusulayı elle döndürebilirsiniz.',
+                  ? context.tr('qibla_sensor_hint')
+                  : context.tr('qibla_no_sensor_hint'),
               style: const TextStyle(color: AppColors.textSecondary, fontSize: 11),
               textAlign: TextAlign.center,
             ),
@@ -597,9 +731,9 @@ class _QiblaScreenState extends State<QiblaScreen> with SingleTickerProviderStat
                         children: [
                           const Icon(Icons.navigation, color: AppColors.goldPrimary, size: 22),
                           const SizedBox(height: 6),
-                          const Text(
-                            'Kıble Açısı',
-                            style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                          Text(
+                            context.tr('qibla_angle'),
+                            style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
                           ),
                           const SizedBox(height: 4),
                           Text(
@@ -611,7 +745,7 @@ class _QiblaScreenState extends State<QiblaScreen> with SingleTickerProviderStat
                             ),
                           ),
                           Text(
-                            _getDirectionName(qiblaBearing),
+                            _getDirectionName(qiblaBearing, context),
                             style: const TextStyle(color: AppColors.textSecondary, fontSize: 11),
                           ),
                         ],
@@ -631,9 +765,9 @@ class _QiblaScreenState extends State<QiblaScreen> with SingleTickerProviderStat
                         children: [
                           const Icon(Icons.straighten, color: AppColors.emeraldAccent, size: 22),
                           const SizedBox(height: 6),
-                          const Text(
-                            'Mekke\'ye Mesafe',
-                            style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                          Text(
+                            context.tr('qibla_distance_mecca'),
+                            style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
                           ),
                           const SizedBox(height: 4),
                           Text(
@@ -644,15 +778,57 @@ class _QiblaScreenState extends State<QiblaScreen> with SingleTickerProviderStat
                               fontSize: 18,
                             ),
                           ),
-                          const Text(
-                            'Kuş Uçuşu',
-                            style: TextStyle(color: AppColors.textSecondary, fontSize: 11),
+                          Text(
+                            context.tr('qibla_direct_flight'),
+                            style: const TextStyle(color: AppColors.textSecondary, fontSize: 11),
                           ),
                         ],
                       ),
                     ),
                   ),
                 ],
+              ),
+            ),
+
+            const SizedBox(height: 12),
+
+            // Coordinates Info Badge
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                decoration: BoxDecoration(
+                  color: AppColors.bgDark3.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.glassBorder),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      _isUsingGps ? Icons.gps_fixed : Icons.apartment,
+                      size: 14,
+                      color: _isUsingGps ? AppColors.emeraldAccent : AppColors.goldLight,
+                    ),
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        context.tr('qibla_calculation_label', {
+                          'lat': effectiveLat.toStringAsFixed(4),
+                          'lng': effectiveLng.toStringAsFixed(4),
+                          'src': _isUsingGps
+                              ? context.tr('qibla_precise_gps_tag')
+                              : context.tr('qibla_city_center_tag', {'city': _selectedCity.name}),
+                        }),
+                        style: const TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 11,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
 
@@ -671,13 +847,13 @@ class _QiblaScreenState extends State<QiblaScreen> with SingleTickerProviderStat
                   border: Border.all(color: AppColors.goldPrimary.withValues(alpha: 0.4)),
                 ),
                 child: Row(
-                  children: const [
-                    Icon(Icons.info_outline, color: AppColors.goldGlow, size: 28),
-                    SizedBox(width: 12),
+                  children: [
+                    const Icon(Icons.info_outline, color: AppColors.goldGlow, size: 28),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        'Türkiye\'de kıble genellikle Güneydoğu (140° - 165°) istikametindedir. Telefonunuzu düz bir zemine koyarak Kabe ikonunun tam üst noktaya hizalanmasını sağlayınız.',
-                        style: TextStyle(
+                        context.tr('qibla_guide_text'),
+                        style: const TextStyle(
                           color: AppColors.textPrimary,
                           fontSize: 12,
                           height: 1.4,

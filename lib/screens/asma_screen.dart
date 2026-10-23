@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../core/constants/app_colors.dart';
 import '../core/constants/asma_data.dart';
+import '../core/localization/localization_extension.dart';
 import '../models/asma_model.dart';
 
 class AsmaScreen extends StatefulWidget {
@@ -27,14 +28,14 @@ class _AsmaScreenState extends State<AsmaScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final filtered = AsmaData.search(_searchQuery);
+    final filtered = AsmaData.search(_searchQuery, lang: context.langCode);
 
     return Scaffold(
       backgroundColor: AppColors.bgDark1,
       appBar: AppBar(
-        title: const Text(
-          'Esma-ül Hüsna (99 İsim)',
-          style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+        title: Text(
+          context.tr('asma_title'),
+          style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary),
         ),
         actions: [
           IconButton(
@@ -42,7 +43,7 @@ class _AsmaScreenState extends State<AsmaScreen> {
               _isGridView ? Icons.view_list : Icons.grid_view,
               color: AppColors.goldPrimary,
             ),
-            tooltip: _isGridView ? 'Liste Görünümü' : 'Kare Görünüm',
+            tooltip: _isGridView ? context.tr('asma_tooltip_list') : context.tr('asma_tooltip_grid'),
             onPressed: () {
               setState(() {
                 _isGridView = !_isGridView;
@@ -64,7 +65,7 @@ class _AsmaScreenState extends State<AsmaScreen> {
                 });
               },
               decoration: InputDecoration(
-                hintText: 'İsim, anlam veya numara ara (Örn: Rahman, 1)...',
+                hintText: context.tr('asma_search_hint'),
                 hintStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
                 prefixIcon: const Icon(Icons.search, color: AppColors.goldPrimary),
                 filled: true,
@@ -89,16 +90,16 @@ class _AsmaScreenState extends State<AsmaScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Toplam ${filtered.length} İsim',
+                  context.tr('asma_total_count', {'count': '${filtered.length}'}),
                   style: const TextStyle(
                     color: AppColors.textSecondary,
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                const Text(
-                  'Kartlara dokunarak zikir çekebilirsiniz',
-                  style: TextStyle(color: AppColors.goldLight, fontSize: 11),
+                Text(
+                  context.tr('asma_tap_hint'),
+                  style: const TextStyle(color: AppColors.goldLight, fontSize: 11),
                 ),
               ],
             ),
@@ -116,7 +117,7 @@ class _AsmaScreenState extends State<AsmaScreen> {
                         const Icon(Icons.search_off, size: 48, color: AppColors.textSecondary),
                         const SizedBox(height: 8),
                         Text(
-                          '"$_searchQuery" ile eşleşen isim bulunamadı',
+                          context.tr('asma_not_found', {'query': _searchQuery}),
                           style: const TextStyle(color: AppColors.textSecondary),
                         ),
                       ],
@@ -187,18 +188,20 @@ class _AsmaScreenState extends State<AsmaScreen> {
                                     ),
                                     textAlign: TextAlign.center,
                                   ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    asma.nameTr,
-                                    style: const TextStyle(
-                                      color: AppColors.textPrimary,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 13,
+                                  if (context.langCode != 'ar') ...[
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      asma.getLocalizedName(context.langCode),
+                                      style: const TextStyle(
+                                        color: AppColors.textPrimary,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 13,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
                                     ),
-                                    textAlign: TextAlign.center,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
+                                  ],
                                   const Spacer(),
                                 ],
                               ),
@@ -249,7 +252,7 @@ class _AsmaScreenState extends State<AsmaScreen> {
                                 children: [
                                   Expanded(
                                     child: Text(
-                                      asma.nameTr,
+                                      asma.getLocalizedName(context.langCode),
                                       style: const TextStyle(
                                         color: AppColors.textPrimary,
                                         fontWeight: FontWeight.bold,
@@ -257,25 +260,27 @@ class _AsmaScreenState extends State<AsmaScreen> {
                                       ),
                                     ),
                                   ),
-                                  Text(
-                                    asma.nameAr,
-                                    style: GoogleFonts.scheherazadeNew(
-                                      fontSize: 22,
-                                      color: AppColors.goldGlow,
-                                      fontWeight: FontWeight.bold,
+                                  if (context.langCode != 'ar')
+                                    Text(
+                                      asma.nameAr,
+                                      style: GoogleFonts.scheherazadeNew(
+                                        fontSize: 22,
+                                        color: AppColors.goldGlow,
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
-                                  ),
                                 ],
                               ),
                               subtitle: Padding(
                                 padding: const EdgeInsets.only(top: 4),
                                 child: Text(
-                                  asma.meaning,
+                                  asma.getLocalizedMeaning(context.langCode),
                                   style: const TextStyle(
                                     color: AppColors.textSecondary,
                                     fontSize: 12,
                                     height: 1.3,
                                   ),
+                                  textAlign: context.isArabic ? TextAlign.right : TextAlign.left,
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
                                 ),
@@ -336,19 +341,34 @@ class _AsmaDetailModalState extends State<_AsmaDetailModal> {
   }
 
   void _copy() {
+    final lang = context.langCode;
     Clipboard.setData(
       ClipboardData(
-        text: '${widget.asma.nameTr} (${widget.asma.nameAr})\n'
-            'Anlamı: ${widget.asma.meaning}\n'
-            'Fazileti: ${widget.asma.virtue}\n'
-            'Ebced Değeri: ${widget.asma.ebced}',
+        text: '${widget.asma.getLocalizedName(lang)} (${widget.asma.nameAr})\n'
+            '${context.tr('asma_meaning')}: ${widget.asma.getLocalizedMeaning(lang)}\n'
+            '${context.tr('asma_virtue')}: ${widget.asma.getLocalizedVirtue(lang)}\n'
+            'Ebced: ${widget.asma.ebced}',
       ),
     );
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Esma bilgisi panoya kopyalandı!'),
-        backgroundColor: AppColors.emeraldAccent,
-        duration: Duration(seconds: 1),
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.check_circle_outline, color: AppColors.emeraldAccent, size: 20),
+            const SizedBox(width: 10),
+            Text(
+              context.tr('asma_copied_snack'),
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
+            ),
+          ],
+        ),
+        backgroundColor: AppColors.bgDark3,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: const BorderSide(color: AppColors.glassBorder),
+        ),
+        duration: const Duration(seconds: 2),
       ),
     );
   }
@@ -392,7 +412,7 @@ class _AsmaDetailModalState extends State<_AsmaDetailModal> {
                     border: Border.all(color: AppColors.goldPrimary),
                   ),
                   child: Text(
-                    'İsim #${asma.id}',
+                    context.tr('asma_item_number', {'id': '${asma.id}'}),
                     style: const TextStyle(
                       color: AppColors.goldGlow,
                       fontWeight: FontWeight.bold,
@@ -402,7 +422,7 @@ class _AsmaDetailModalState extends State<_AsmaDetailModal> {
                 ),
                 IconButton(
                   icon: const Icon(Icons.copy, color: AppColors.goldPrimary),
-                  tooltip: 'Kopyala',
+                  tooltip: context.tr('copy'),
                   onPressed: _copy,
                 ),
               ],
@@ -443,16 +463,18 @@ class _AsmaDetailModalState extends State<_AsmaDetailModal> {
                           ),
                           textAlign: TextAlign.center,
                         ),
-                        const SizedBox(height: 6),
-                        Text(
-                          asma.nameTr,
-                          style: const TextStyle(
-                            color: AppColors.textPrimary,
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
+                        if (context.langCode != 'ar') ...[
+                          const SizedBox(height: 6),
+                          Text(
+                            asma.getLocalizedName(context.langCode),
+                            style: const TextStyle(
+                              color: AppColors.textPrimary,
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            textAlign: TextAlign.center,
                           ),
-                          textAlign: TextAlign.center,
-                        ),
+                        ],
                       ],
                     ),
                   ),
@@ -468,15 +490,18 @@ class _AsmaDetailModalState extends State<_AsmaDetailModal> {
                       border: Border.all(color: AppColors.glassBorder),
                     ),
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      crossAxisAlignment:
+                          context.isArabic ? CrossAxisAlignment.end : CrossAxisAlignment.start,
                       children: [
                         Row(
-                          children: const [
-                            Icon(Icons.menu_book, color: AppColors.emeraldAccent, size: 18),
-                            SizedBox(width: 8),
+                          textDirection:
+                              context.isArabic ? TextDirection.rtl : TextDirection.ltr,
+                          children: [
+                            const Icon(Icons.menu_book, color: AppColors.emeraldAccent, size: 18),
+                            const SizedBox(width: 8),
                             Text(
-                              'Anlamı',
-                              style: TextStyle(
+                              context.tr('asma_meaning'),
+                              style: const TextStyle(
                                 color: AppColors.emeraldAccent,
                                 fontWeight: FontWeight.bold,
                                 fontSize: 14,
@@ -486,12 +511,13 @@ class _AsmaDetailModalState extends State<_AsmaDetailModal> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          asma.meaning,
+                          asma.getLocalizedMeaning(context.langCode),
                           style: const TextStyle(
                             color: AppColors.textPrimary,
                             fontSize: 14,
                             height: 1.5,
                           ),
+                          textAlign: context.isArabic ? TextAlign.right : TextAlign.left,
                         ),
                       ],
                     ),
@@ -508,15 +534,18 @@ class _AsmaDetailModalState extends State<_AsmaDetailModal> {
                       border: Border.all(color: AppColors.glassBorder),
                     ),
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      crossAxisAlignment:
+                          context.isArabic ? CrossAxisAlignment.end : CrossAxisAlignment.start,
                       children: [
                         Row(
-                          children: const [
-                            Icon(Icons.auto_awesome, color: AppColors.goldLight, size: 18),
-                            SizedBox(width: 8),
+                          textDirection:
+                              context.isArabic ? TextDirection.rtl : TextDirection.ltr,
+                          children: [
+                            const Icon(Icons.auto_awesome, color: AppColors.goldLight, size: 18),
+                            const SizedBox(width: 8),
                             Text(
-                              'Fazileti & Tavsiye Edilen Zikir',
-                              style: TextStyle(
+                              context.tr('asma_virtue'),
+                              style: const TextStyle(
                                 color: AppColors.goldLight,
                                 fontWeight: FontWeight.bold,
                                 fontSize: 14,
@@ -526,12 +555,13 @@ class _AsmaDetailModalState extends State<_AsmaDetailModal> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          asma.virtue,
+                          asma.getLocalizedVirtue(context.langCode),
                           style: const TextStyle(
                             color: AppColors.textSecondary,
                             fontSize: 13,
                             height: 1.5,
                           ),
+                          textAlign: context.isArabic ? TextAlign.right : TextAlign.left,
                         ),
                       ],
                     ),
@@ -546,9 +576,9 @@ class _AsmaDetailModalState extends State<_AsmaDetailModal> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Text(
-                              'Zikirmatik',
-                              style: TextStyle(
+                            Text(
+                              context.tr('asma_dhikr_ring'),
+                              style: const TextStyle(
                                 color: AppColors.textPrimary,
                                 fontWeight: FontWeight.bold,
                                 fontSize: 16,
@@ -562,7 +592,7 @@ class _AsmaDetailModalState extends State<_AsmaDetailModal> {
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
-                                'Hedef: ${asma.ebced}',
+                                context.tr('asma_target', {'ebced': '${asma.ebced}'}),
                                 style: const TextStyle(
                                   color: AppColors.goldLight,
                                   fontSize: 12,
@@ -618,9 +648,9 @@ class _AsmaDetailModalState extends State<_AsmaDetailModal> {
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),
-                                    const Text(
-                                      'DOKUN',
-                                      style: TextStyle(
+                                    Text(
+                                      context.tr('asma_tap'),
+                                      style: const TextStyle(
                                         color: AppColors.textSecondary,
                                         fontSize: 10,
                                         letterSpacing: 1.2,
@@ -638,9 +668,9 @@ class _AsmaDetailModalState extends State<_AsmaDetailModal> {
                         if (_counter > 0)
                           TextButton.icon(
                             icon: const Icon(Icons.refresh, color: AppColors.textSecondary, size: 16),
-                            label: const Text(
-                              'Sayacı Sıfırla',
-                              style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                            label: Text(
+                              context.tr('asma_reset'),
+                              style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
                             ),
                             onPressed: _reset,
                           ),

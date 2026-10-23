@@ -38,6 +38,21 @@ class AppTheme {
         elevation: 0,
         centerTitle: true,
       ),
+      snackBarTheme: SnackBarThemeData(
+        backgroundColor: AppColors.bgDark3,
+        contentTextStyle: GoogleFonts.outfit(
+          color: Colors.white,
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+        ),
+        actionTextColor: AppColors.goldGlow,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: const BorderSide(color: AppColors.glassBorder, width: 1),
+        ),
+        elevation: 6,
+      ),
       useMaterial3: true,
     );
   }

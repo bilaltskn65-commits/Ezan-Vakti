@@ -3,8 +3,10 @@ import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../providers/quran_provider.dart';
 import '../core/constants/app_colors.dart';
+import '../core/localization/localization_extension.dart';
 import 'quran_detail_screen.dart';
-import 'hafiz_select_modal.dart';
+import '../widgets/modals/hafiz_select_modal.dart';
+import '../widgets/modals/meal_select_modal.dart';
 import 'favorite_ayahs_screen.dart';
 
 class QuranListScreen extends StatefulWidget {
@@ -20,7 +22,6 @@ class _QuranListScreenState extends State<QuranListScreen> {
   @override
   Widget build(BuildContext context) {
     final quranProvider = Provider.of<QuranProvider>(context);
-    final selectedHafiz = quranProvider.selectedHafiz;
 
     final filteredSurahs = quranProvider.surahList.where((surah) {
       final query = _searchQuery.toLowerCase().trim();
@@ -35,14 +36,14 @@ class _QuranListScreenState extends State<QuranListScreen> {
     return Scaffold(
       backgroundColor: AppColors.bgDark1,
       appBar: AppBar(
-        title: const Text(
-          'Kuran-ı Kerim',
-          style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+        title: Text(
+          context.tr('quran_title'),
+          style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary),
         ),
         actions: [
           IconButton(
             icon: const Icon(Icons.bookmark_outline, color: AppColors.goldPrimary),
-            tooltip: 'Beğenilen Ayetler',
+            tooltip: context.tr('quran_favorites_title'),
             onPressed: () {
               Navigator.push(
                 context,
@@ -51,71 +52,19 @@ class _QuranListScreenState extends State<QuranListScreen> {
             },
           ),
           IconButton(
+            icon: const Icon(Icons.translate, color: AppColors.goldPrimary),
+            tooltip: context.tr('meal_modal_title'),
+            onPressed: () => MealSelectModal.show(context),
+          ),
+          IconButton(
             icon: const Icon(Icons.record_voice_over, color: AppColors.goldPrimary),
-            tooltip: 'Hafız Seç',
+            tooltip: context.tr('hafiz_modal_title'),
             onPressed: () => HafizSelectModal.show(context),
           ),
         ],
       ),
       body: Column(
         children: [
-          // Selected Hafiz Card
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [AppColors.bgDark3, AppColors.emeraldDark],
-                ),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                    color: AppColors.goldPrimary.withValues(alpha: 0.5)),
-              ),
-              child: Row(
-                children: [
-                  const CircleAvatar(
-                    backgroundColor: AppColors.goldPrimary,
-                    radius: 20,
-                    child: Icon(Icons.record_voice_over, color: AppColors.bgDark1),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Okuyan Hafız: ${selectedHafiz.nameTr}',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.textPrimary,
-                            fontSize: 14,
-                          ),
-                        ),
-                        Text(
-                          selectedHafiz.description,
-                          style: const TextStyle(
-                            color: AppColors.textSecondary,
-                            fontSize: 11,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
-                  ),
-                  TextButton(
-                    onPressed: () => HafizSelectModal.show(context),
-                    child: const Text(
-                      'Değiştir',
-                      style: TextStyle(color: AppColors.goldGlow, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-
           // Bookmark Resume Card (Son Kaldığım Yer)
           if (quranProvider.lastSurahNumber != null)
             Padding(
@@ -148,16 +97,16 @@ class _QuranListScreenState extends State<QuranListScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
-                              'Kaldığın Yerden Devam Et',
-                              style: TextStyle(
+                            Text(
+                              context.tr('quran_last_read'),
+                              style: const TextStyle(
                                 color: AppColors.goldGlow,
                                 fontWeight: FontWeight.bold,
                                 fontSize: 13,
                               ),
                             ),
                             Text(
-                              '${quranProvider.lastSurahName ?? "Sure"} • ${quranProvider.lastAyahNumber}. Ayet',
+                              '${quranProvider.lastSurahName ?? context.tr("surah_default_name")} • ${context.tr("ayah_number_format", {"number": (quranProvider.lastAyahNumber ?? 1).toString()})}',
                               style: const TextStyle(
                                 color: AppColors.textPrimary,
                                 fontWeight: FontWeight.bold,
@@ -198,7 +147,7 @@ class _QuranListScreenState extends State<QuranListScreen> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
-                          'Beğenilen Ayetler (${quranProvider.favorites.length})',
+                          '${context.tr("quran_favorites_title")} (${quranProvider.favorites.length})',
                           style: const TextStyle(
                             color: AppColors.textPrimary,
                             fontWeight: FontWeight.bold,
@@ -206,9 +155,9 @@ class _QuranListScreenState extends State<QuranListScreen> {
                           ),
                         ),
                       ),
-                      const Text(
-                        'Tümünü Gör',
-                        style: TextStyle(
+                      Text(
+                        context.tr('quran_view_all'),
+                        style: const TextStyle(
                           color: AppColors.goldGlow,
                           fontWeight: FontWeight.bold,
                           fontSize: 12,
@@ -232,7 +181,7 @@ class _QuranListScreenState extends State<QuranListScreen> {
                 });
               },
               decoration: InputDecoration(
-                hintText: 'Sure ara (Örn: Yasin, Fatiha, 36, 7 ayet)...',
+                hintText: context.tr('quran_search_hint'),
                 hintStyle: const TextStyle(color: AppColors.textSecondary),
                 prefixIcon: const Icon(Icons.search, color: AppColors.goldPrimary),
                 filled: true,
@@ -266,8 +215,8 @@ class _QuranListScreenState extends State<QuranListScreen> {
                             const SizedBox(height: 12),
                             Text(
                               _searchQuery.isNotEmpty
-                                  ? '"$_searchQuery" ile eşleşen sure bulunamadı'
-                                  : 'Sure bulunamadı',
+                                  ? context.tr('quran_no_surah_query', {'query': _searchQuery})
+                                  : context.tr('quran_no_surah'),
                               style: const TextStyle(
                                   color: AppColors.textSecondary, fontSize: 14),
                             ),
@@ -279,6 +228,9 @@ class _QuranListScreenState extends State<QuranListScreen> {
                     itemCount: filteredSurahs.length,
                     itemBuilder: (context, index) {
                       final surah = filteredSurahs[index];
+                      final localizedAyahs = surah.getLocalizedAyahs(context.langCode);
+                      final localizedType = surah.getLocalizedRevelationType(context.langCode);
+
                       return Container(
                         margin: const EdgeInsets.only(bottom: 10),
                         decoration: BoxDecoration(
@@ -308,7 +260,7 @@ class _QuranListScreenState extends State<QuranListScreen> {
                             ),
                           ),
                           subtitle: Text(
-                            '${surah.numberOfAyahs} Ayet • ${surah.revelationTypeTr}',
+                            '$localizedAyahs • $localizedType',
                             style: const TextStyle(
                               color: AppColors.textSecondary,
                               fontSize: 12,
@@ -340,4 +292,3 @@ class _QuranListScreenState extends State<QuranListScreen> {
     );
   }
 }
-

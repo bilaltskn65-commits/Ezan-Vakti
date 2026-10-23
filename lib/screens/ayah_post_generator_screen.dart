@@ -141,16 +141,24 @@ class _AyahPostGeneratorScreenState extends State<AyahPostGeneratorScreen> {
   void _copyToClipboard() {
     Clipboard.setData(ClipboardData(text: _buildShareCaption()));
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Row(
+      SnackBar(
+        content: const Row(
           children: [
-            Icon(Icons.copy, color: Colors.white, size: 18),
-            SizedBox(width: 8),
-            Text('Ayet ve meali panoya kopyalandı!'),
+            Icon(Icons.copy, color: AppColors.emeraldAccent, size: 18),
+            SizedBox(width: 10),
+            Text(
+              'Ayet ve meali panoya kopyalandı!',
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
+            ),
           ],
         ),
-        backgroundColor: AppColors.emeraldAccent,
-        duration: Duration(seconds: 2),
+        backgroundColor: AppColors.bgDark3,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: const BorderSide(color: AppColors.glassBorder),
+        ),
+        duration: const Duration(seconds: 2),
       ),
     );
   }
@@ -197,8 +205,16 @@ class _AyahPostGeneratorScreenState extends State<AyahPostGeneratorScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Paylaşım hatası: $e'),
-            backgroundColor: Colors.redAccent,
+            content: Text(
+              'Paylaşım hatası: $e',
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
+            ),
+            backgroundColor: AppColors.bgDark3,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: const BorderSide(color: Colors.redAccent),
+            ),
           ),
         );
       }
@@ -227,18 +243,26 @@ class _AyahPostGeneratorScreenState extends State<AyahPostGeneratorScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Row(
+          SnackBar(
+            content: const Row(
               children: [
-                Icon(Icons.check_circle, color: Colors.white, size: 20),
-                SizedBox(width: 8),
+                Icon(Icons.check_circle_outline, color: AppColors.emeraldAccent, size: 20),
+                SizedBox(width: 10),
                 Expanded(
-                  child: Text('Görsel telefonun galerisine başarıyla kaydedildi!'),
+                  child: Text(
+                    'Görsel telefonun galerisine başarıyla kaydedildi!',
+                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
+                  ),
                 ),
               ],
             ),
-            backgroundColor: AppColors.emeraldAccent,
-            duration: Duration(seconds: 3),
+            backgroundColor: AppColors.bgDark3,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: const BorderSide(color: AppColors.glassBorder),
+            ),
+            duration: const Duration(seconds: 3),
           ),
         );
       }
@@ -246,8 +270,16 @@ class _AyahPostGeneratorScreenState extends State<AyahPostGeneratorScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Galeri izni veya kayıt hatası: ${e.type.message}'),
-            backgroundColor: Colors.redAccent,
+            content: Text(
+              'Galeri izni veya kayıt hatası: ${e.type.message}',
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
+            ),
+            backgroundColor: AppColors.bgDark3,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: const BorderSide(color: Colors.redAccent),
+            ),
           ),
         );
       }
@@ -255,8 +287,16 @@ class _AyahPostGeneratorScreenState extends State<AyahPostGeneratorScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Kaydetme hatası: $e'),
-            backgroundColor: Colors.redAccent,
+            content: Text(
+              'Kaydetme hatası: $e',
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
+            ),
+            backgroundColor: AppColors.bgDark3,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: const BorderSide(color: Colors.redAccent),
+            ),
           ),
         );
       }
@@ -589,45 +629,64 @@ class _AyahPostGeneratorScreenState extends State<AyahPostGeneratorScreen> {
                 child: Column(
                   children: [
                     // Format Toggle: Post vs Story
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'Boyut Formatı',
-                          style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600),
-                        ),
-                        SegmentedButton<bool>(
-                          segments: const [
-                            ButtonSegment(
-                              value: false,
-                              label: Text('Kare 1:1'),
-                              icon: Icon(Icons.crop_square, size: 16),
-                            ),
-                            ButtonSegment(
-                              value: true,
-                              label: Text('Hikaye 9:16'),
-                              icon: Icon(Icons.stay_current_portrait, size: 16),
+                        Row(
+                          children: const [
+                            Icon(Icons.aspect_ratio, size: 16, color: AppColors.goldPrimary),
+                            SizedBox(width: 6),
+                            Text(
+                              'Boyut Formatı',
+                              style: TextStyle(
+                                color: AppColors.textPrimary,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 13,
+                              ),
                             ),
                           ],
-                          selected: {_isStoryMode},
-                          onSelectionChanged: (set) {
-                            setState(() {
-                              _isStoryMode = set.first;
-                            });
-                          },
-                          style: ButtonStyle(
-                            backgroundColor: WidgetStateProperty.resolveWith((states) {
-                              if (states.contains(WidgetState.selected)) {
-                                return AppColors.goldPrimary;
-                              }
-                              return AppColors.bgDark3;
-                            }),
-                            foregroundColor: WidgetStateProperty.resolveWith((states) {
-                              if (states.contains(WidgetState.selected)) {
-                                return AppColors.bgDark1;
-                              }
-                              return AppColors.textPrimary;
-                            }),
+                        ),
+                        const SizedBox(height: 10),
+                        SizedBox(
+                          width: double.infinity,
+                          child: SegmentedButton<bool>(
+                            showSelectedIcon: false,
+                            segments: const [
+                              ButtonSegment(
+                                value: false,
+                                label: Text('Kare (1:1)', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                                icon: Icon(Icons.crop_square, size: 16),
+                              ),
+                              ButtonSegment(
+                                value: true,
+                                label: Text('Hikaye (9:16)', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                                icon: Icon(Icons.stay_current_portrait, size: 16),
+                              ),
+                            ],
+                            selected: {_isStoryMode},
+                            onSelectionChanged: (set) {
+                              setState(() {
+                                _isStoryMode = set.first;
+                              });
+                            },
+                            style: ButtonStyle(
+                              visualDensity: VisualDensity.compact,
+                              backgroundColor: WidgetStateProperty.resolveWith((states) {
+                                if (states.contains(WidgetState.selected)) {
+                                  return AppColors.goldPrimary;
+                                }
+                                return AppColors.bgDark3;
+                              }),
+                              foregroundColor: WidgetStateProperty.resolveWith((states) {
+                                if (states.contains(WidgetState.selected)) {
+                                  return AppColors.bgDark1;
+                                }
+                                return AppColors.textPrimary;
+                              }),
+                              side: WidgetStateProperty.all(
+                                const BorderSide(color: AppColors.glassBorder),
+                              ),
+                            ),
                           ),
                         ),
                       ],

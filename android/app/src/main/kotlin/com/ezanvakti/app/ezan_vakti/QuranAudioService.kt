@@ -9,27 +9,52 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.media.AudioAttributes
+import android.media.AudioFocusRequest
+import android.media.AudioManager
 import android.media.MediaPlayer
 import android.os.Build
 import android.os.IBinder
+import android.os.PowerManager
+import android.support.v4.media.session.MediaSessionCompat
+import android.support.v4.media.session.PlaybackStateCompat
 import androidx.core.app.NotificationCompat
 
 class QuranAudioService : Service() {
 
     private var mediaPlayer: MediaPlayer? = null
+    private var mediaSession: MediaSessionCompat? = null
+    private var wakeLock: PowerManager.WakeLock? = null
+    private var audioManager: AudioManager? = null
+    private var audioFocusRequest: AudioFocusRequest? = null
+
     private var isPlaying = false
     private var surahNum = 94
     private var ayahNum = 5
     private var surahName = "İnşirah"
-    private var pendingNextSurah = false
 
     companion object {
         const val ACTION_PLAY_PAUSE = "com.ezanvakti.app.ACTION_PLAY_PAUSE"
         const val ACTION_NEXT = "com.ezanvakti.app.ACTION_NEXT"
         const val ACTION_PREV = "com.ezanvakti.app.ACTION_PREV"
         const val ACTION_STOP = "com.ezanvakti.app.ACTION_STOP"
+
         private const val CHANNEL_ID = "quran_audio_playback"
         private const val NOTIF_ID = 2001
+
+        @Volatile
+        var isServiceRunning = false
+            private set
+
+        fun stopService(context: Context) {
+            try {
+                val stopIntent = Intent(context, QuranAudioService::class.java).apply {
+                    action = ACTION_STOP
+                }
+                context.startService(stopIntent)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
 
         private val SURAH_NAMES = arrayOf(
             "Fatiha", "Bakara", "Âl-i İmrân", "Nisâ", "Mâide", "En'âm", "A'râf", "Enfâl", "Tevbe", "Yûnus",
@@ -74,7 +99,45 @@ class QuranAudioService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        isServiceRunning = true
         createNotificationChannel()
+
+        audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+
+        // Ekran kapandığında sesin kesilmemesi için WakeLock oluştur
+        val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
+        wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "EzanVakti:QuranAudioLock").apply {
+            setReferenceCounted(false)
+        }
+
+        initMediaSession()
+    }
+
+    private fun initMediaSession() {
+        mediaSession = MediaSessionCompat(this, "QuranAudioPlayback").apply {
+            isActive = true
+            setCallback(object : MediaSessionCompat.Callback() {
+                override fun onPlay() {
+                    playArabicAudio()
+                }
+
+                override fun onPause() {
+                    pauseAudio()
+                }
+
+                override fun onSkipToNext() {
+                    nextSurah()
+                }
+
+                override fun onSkipToPrevious() {
+                    prevSurah()
+                }
+
+                override fun onStop() {
+                    stopAudio()
+                }
+            })
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -82,51 +145,21 @@ class QuranAudioService : Service() {
 
         readPrefs()
 
-        val willPlay = if (action == ACTION_PLAY_PAUSE) !isPlaying else true
-        val notif = createNotification(willPlay)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            startForeground(NOTIF_ID, notif, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK)
-        } else {
-            startForeground(NOTIF_ID, notif)
-        }
-
         when (action) {
             ACTION_PLAY_PAUSE -> {
                 if (isPlaying) {
                     pauseAudio()
                 } else {
-                    playAudio()
+                    playArabicAudio()
                 }
             }
             ACTION_NEXT -> {
-                if (isPlaying) {
-                    // Ayet bittikten sonra sonraki sureye geçişi kuyruğa al
-                    pendingNextSurah = true
-                    android.widget.Toast.makeText(
-                        this,
-                        "Ayet bitince sonraki sureye geçilecek",
-                        android.widget.Toast.LENGTH_SHORT
-                    ).show()
-                } else {
-                    // Duraklatılmışsa veya kapalıysa hemen sonraki sureye geç ve oynat
-                    val nextSurah = if (surahNum >= 114) 1 else surahNum + 1
-                    saveSurahAndAyah(nextSurah, 1)
-                    pendingNextSurah = false
-                    playAudio()
-                }
+                nextSurah()
             }
             ACTION_PREV -> {
-                pendingNextSurah = false
-                if (ayahNum > 1) {
-                    saveSurahAndAyah(surahNum, ayahNum - 1)
-                } else {
-                    val prevSurah = if (surahNum <= 1) 114 else surahNum - 1
-                    saveSurahAndAyah(prevSurah, 1)
-                }
-                playAudio()
+                prevSurah()
             }
             ACTION_STOP -> {
-                pendingNextSurah = false
                 stopAudio()
             }
         }
@@ -153,7 +186,84 @@ class QuranAudioService : Service() {
             .apply()
     }
 
-    private fun playAudio() {
+    private fun nextSurah() {
+        val nextSurah = if (surahNum >= 114) 1 else surahNum + 1
+        saveSurahAndAyah(nextSurah, 1)
+        playArabicAudio()
+    }
+
+    private fun prevSurah() {
+        val prevSurah = if (surahNum <= 1) 114 else surahNum - 1
+        saveSurahAndAyah(prevSurah, 1)
+        playArabicAudio()
+    }
+
+    private fun acquireWakeLock() {
+        try {
+            if (wakeLock?.isHeld == false) {
+                wakeLock?.acquire(15 * 60 * 1000L) // 15 dakika güvenlik süresi
+            }
+        } catch (_: Exception) {}
+    }
+
+    private fun releaseWakeLock() {
+        try {
+            if (wakeLock?.isHeld == true) {
+                wakeLock?.release()
+            }
+        } catch (_: Exception) {}
+    }
+
+    private fun requestAudioFocus(): Boolean {
+        return try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                if (audioFocusRequest == null) {
+                    val audioAttributes = AudioAttributes.Builder()
+                        .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                        .setUsage(AudioAttributes.USAGE_MEDIA)
+                        .build()
+                    audioFocusRequest = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
+                        .setAudioAttributes(audioAttributes)
+                        .setAcceptsDelayedFocusGain(false)
+                        .setOnAudioFocusChangeListener { focusChange ->
+                            if (focusChange == AudioManager.AUDIOFOCUS_LOSS ||
+                                focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT) {
+                                pauseAudio()
+                            }
+                        }
+                        .build()
+                }
+                audioManager?.requestAudioFocus(audioFocusRequest!!) == AudioManager.AUDIOFOCUS_REQUEST_GRANTED
+            } else {
+                @Suppress("DEPRECATION")
+                audioManager?.requestAudioFocus(
+                    { focusChange ->
+                        if (focusChange == AudioManager.AUDIOFOCUS_LOSS ||
+                            focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT) {
+                            pauseAudio()
+                        }
+                    },
+                    AudioManager.STREAM_MUSIC,
+                    AudioManager.AUDIOFOCUS_GAIN
+                ) == AudioManager.AUDIOFOCUS_REQUEST_GRANTED
+            }
+        } catch (_: Exception) {
+            true
+        }
+    }
+
+    private fun abandonAudioFocus() {
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                audioFocusRequest?.let { audioManager?.abandonAudioFocusRequest(it) }
+            } else {
+                @Suppress("DEPRECATION")
+                audioManager?.abandonAudioFocus(null)
+            }
+        } catch (_: Exception) {}
+    }
+
+    private fun playArabicAudio() {
         val url = String.format(
             "https://everyayah.com/data/Alafasy_128kbps/%03d%03d.mp3",
             surahNum,
@@ -161,10 +271,15 @@ class QuranAudioService : Service() {
         )
 
         try {
+            requestAudioFocus()
+            acquireWakeLock()
             this.isPlaying = true
             updateState(true)
+            showForegroundNotification(true)
+
             mediaPlayer?.release()
             mediaPlayer = MediaPlayer().apply {
+                setWakeMode(applicationContext, PowerManager.PARTIAL_WAKE_LOCK)
                 setAudioAttributes(
                     AudioAttributes.Builder()
                         .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
@@ -176,45 +291,35 @@ class QuranAudioService : Service() {
                     mp.start()
                     this@QuranAudioService.isPlaying = true
                     updateState(true)
-                    val notif = createNotification(true)
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                        startForeground(NOTIF_ID, notif, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK)
-                    } else {
-                        startForeground(NOTIF_ID, notif)
-                    }
+                    showForegroundNotification(true)
                 }
                 setOnCompletionListener {
-                    if (pendingNextSurah) {
-                        // Kullanıcı sonraki butonuna bastığı için ayet bittiğinde sonraki sureye geç
-                        pendingNextSurah = false
+                    val totalAyahs = getAyahCount(surahNum)
+                    if (ayahNum < totalAyahs) {
+                        saveSurahAndAyah(surahNum, ayahNum + 1)
+                        playArabicAudio()
+                    } else {
                         val nextSurah = if (surahNum >= 114) 1 else surahNum + 1
                         saveSurahAndAyah(nextSurah, 1)
-                        playAudio()
-                    } else {
-                        // Kesintisiz sure çalma: Sırada ayet varsa devam et, sure bittiyse sonraki sureye geç
-                        val totalAyahs = getAyahCount(surahNum)
-                        if (ayahNum < totalAyahs) {
-                            saveSurahAndAyah(surahNum, ayahNum + 1)
-                            playAudio()
-                        } else {
-                            val nextSurah = if (surahNum >= 114) 1 else surahNum + 1
-                            saveSurahAndAyah(nextSurah, 1)
-                            playAudio()
-                        }
+                        playArabicAudio()
                     }
                 }
                 setOnErrorListener { _, _, _ ->
                     this@QuranAudioService.isPlaying = false
                     updateState(false)
-                    stopForeground(STOP_FOREGROUND_REMOVE)
+                    releaseWakeLock()
+                    abandonAudioFocus()
+                    showForegroundNotification(false)
                     true
                 }
                 prepareAsync()
             }
         } catch (e: Exception) {
             e.printStackTrace()
-            this@QuranAudioService.isPlaying = false
+            this.isPlaying = false
             updateState(false)
+            releaseWakeLock()
+            abandonAudioFocus()
         }
     }
 
@@ -222,20 +327,14 @@ class QuranAudioService : Service() {
         try {
             if (mediaPlayer?.isPlaying == true) {
                 mediaPlayer?.pause()
-            } else {
-                mediaPlayer?.reset()
             }
-        } catch (e: Exception) {
-            try { mediaPlayer?.reset() } catch (_: Exception) {}
-        }
+        } catch (_: Exception) {}
+
         isPlaying = false
+        releaseWakeLock()
+        abandonAudioFocus()
         updateState(false)
-        val notif = createNotification(false)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            startForeground(NOTIF_ID, notif, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK)
-        } else {
-            startForeground(NOTIF_ID, notif)
-        }
+        showForegroundNotification(false)
     }
 
     private fun stopAudio() {
@@ -243,8 +342,11 @@ class QuranAudioService : Service() {
             mediaPlayer?.stop()
             mediaPlayer?.release()
         } catch (_: Exception) {}
+
         mediaPlayer = null
         isPlaying = false
+        releaseWakeLock()
+        abandonAudioFocus()
         updateState(false)
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
@@ -252,57 +354,109 @@ class QuranAudioService : Service() {
 
     private fun updateState(playing: Boolean) {
         val prefs = getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
-        prefs.edit().putBoolean("flutter.is_audio_playing", playing).apply()
-        QuranAudioWidgetProvider.updateAllWidgets(this, playing, "$surahName, $ayahNum. Ayet")
+        prefs.edit()
+            .putBoolean("flutter.is_audio_playing", playing)
+            .putBoolean("flutter.is_widget_audio_playing", playing)
+            .apply()
+
+        val trackTitle = "$surahName • $ayahNum. Ayet"
+
+        QuranAudioWidgetProvider.updateAllWidgets(
+            this,
+            playing,
+            trackTitle
+        )
+        updatePlaybackState(playing)
+    }
+
+    private fun updatePlaybackState(playing: Boolean) {
+        val state = if (playing) PlaybackStateCompat.STATE_PLAYING else PlaybackStateCompat.STATE_PAUSED
+        val actions = PlaybackStateCompat.ACTION_PLAY or
+                PlaybackStateCompat.ACTION_PAUSE or
+                PlaybackStateCompat.ACTION_PLAY_PAUSE or
+                PlaybackStateCompat.ACTION_SKIP_TO_NEXT or
+                PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS or
+                PlaybackStateCompat.ACTION_STOP
+
+        mediaSession?.setPlaybackState(
+            PlaybackStateCompat.Builder()
+                .setActions(actions)
+                .setState(state, PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN, 1.0f)
+                .build()
+        )
+    }
+
+    private fun showForegroundNotification(playing: Boolean) {
+        val notif = createNotification(playing)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            startForeground(NOTIF_ID, notif, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK)
+        } else {
+            startForeground(NOTIF_ID, notif)
+        }
     }
 
     private fun createNotification(playing: Boolean): Notification {
-        val openIntent = Intent(this, MainActivity::class.java)
+        val openIntent = Intent(this, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            putExtra("tab", 1)
+        }
         val pOpen = PendingIntent.getActivity(
             this, 201, openIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        val toggleIntent = Intent(this, QuranAudioService::class.java).apply {
-            action = ACTION_PLAY_PAUSE
-        }
-        val pToggle = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            PendingIntent.getForegroundService(
-                this, 202, toggleIntent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            )
+        // Previous Action
+        val prevIntent = Intent(this, QuranAudioService::class.java).apply { action = ACTION_PREV }
+        val pPrev = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            PendingIntent.getForegroundService(this, 202, prevIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
         } else {
-            PendingIntent.getService(
-                this, 202, toggleIntent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            )
+            PendingIntent.getService(this, 202, prevIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
         }
 
-        val stopIntent = Intent(this, QuranAudioService::class.java).apply {
-            action = ACTION_STOP
-        }
-        val pStop = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            PendingIntent.getForegroundService(
-                this, 203, stopIntent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            )
+        // Play/Pause Action
+        val toggleIntent = Intent(this, QuranAudioService::class.java).apply { action = ACTION_PLAY_PAUSE }
+        val pToggle = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            PendingIntent.getForegroundService(this, 203, toggleIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
         } else {
-            PendingIntent.getService(
-                this, 203, stopIntent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            )
+            PendingIntent.getService(this, 203, toggleIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+        }
+
+        // Next Action
+        val nextIntent = Intent(this, QuranAudioService::class.java).apply { action = ACTION_NEXT }
+        val pNext = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            PendingIntent.getForegroundService(this, 204, nextIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+        } else {
+            PendingIntent.getService(this, 204, nextIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+        }
+
+        // Stop Action
+        val stopIntent = Intent(this, QuranAudioService::class.java).apply { action = ACTION_STOP }
+        val pStop = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            PendingIntent.getForegroundService(this, 205, stopIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+        } else {
+            PendingIntent.getService(this, 205, stopIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
         }
 
         val playPauseIcon = if (playing) R.drawable.ic_widget_pause else R.drawable.ic_widget_play
         val playPauseText = if (playing) "Durdur" else "Oynat"
 
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("Kuran-ı Kerim Dinleniyor")
-            .setContentText("$surahName, $ayahNum. Ayet (Saad el-Gamdi)")
+            .setContentTitle("Kuran-ı Kerim Tilaveti")
+            .setContentText("$surahName Suresi • $ayahNum. Ayet")
+            .setSubText("Saad el-Gamdi")
             .setSmallIcon(R.mipmap.ic_launcher)
             .setContentIntent(pOpen)
+            .addAction(R.drawable.ic_widget_prev, "Önceki", pPrev)
             .addAction(playPauseIcon, playPauseText, pToggle)
+            .addAction(R.drawable.ic_widget_next, "Sonraki", pNext)
             .addAction(R.drawable.ic_widget_pause, "Kapat", pStop)
+            .setStyle(
+                androidx.media.app.NotificationCompat.MediaStyle()
+                    .setMediaSession(mediaSession?.sessionToken)
+                    .setShowActionsInCompactView(0, 1, 2)
+                    .setShowCancelButton(true)
+                    .setCancelButtonIntent(pStop)
+            )
             .setOngoing(playing)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .build()
@@ -323,6 +477,11 @@ class QuranAudioService : Service() {
     }
 
     override fun onDestroy() {
+        isServiceRunning = false
+        abandonAudioFocus()
+        releaseWakeLock()
+        mediaSession?.release()
+        mediaSession = null
         mediaPlayer?.release()
         mediaPlayer = null
         super.onDestroy()

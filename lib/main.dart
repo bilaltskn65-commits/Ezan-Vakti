@@ -4,6 +4,7 @@ import 'core/theme/app_theme.dart';
 import 'core/services/notification_service.dart';
 import 'providers/prayer_provider.dart';
 import 'providers/quran_provider.dart';
+import 'providers/locale_provider.dart';
 import 'screens/home_screen.dart';
 
 void main() async {
@@ -13,6 +14,7 @@ void main() async {
   runApp(
     MultiProvider(
       providers: [
+        ChangeNotifierProvider(create: (_) => LocaleProvider()),
         ChangeNotifierProvider(create: (_) => PrayerProvider()),
         ChangeNotifierProvider(create: (_) => QuranProvider()),
       ],
@@ -39,9 +41,11 @@ class EzanVaktiApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final localeProvider = context.watch<LocaleProvider>();
     return MaterialApp(
       title: 'Ezan Vakti & Kuran-ı Kerim',
       debugShowCheckedModeBanner: false,
+      locale: localeProvider.locale,
       scrollBehavior: const AppScrollBehavior(),
       theme: AppTheme.darkTheme,
       home: const HomeScreen(),

@@ -4,7 +4,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import '../providers/quran_provider.dart';
 import '../core/constants/app_colors.dart';
-import 'hafiz_select_modal.dart';
+import '../core/localization/localization_extension.dart';
+import '../widgets/modals/hafiz_select_modal.dart';
+import '../widgets/modals/meal_select_modal.dart';
 import 'ayah_post_generator_screen.dart';
 import 'favorite_ayahs_screen.dart';
 import '../models/favorite_ayah_model.dart';
@@ -145,7 +147,7 @@ class _QuranDetailScreenState extends State<QuranDetailScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                '${quranProvider.currentSurah?.nameTr ?? "Sure"} Suresi',
+                                quranProvider.currentSurah?.getLocalizedName(context.langCode) ?? context.tr('surah_default_name'),
                                 style: const TextStyle(
                                   color: AppColors.textPrimary,
                                   fontSize: 17,
@@ -153,7 +155,7 @@ class _QuranDetailScreenState extends State<QuranDetailScreen> {
                                 ),
                               ),
                               Text(
-                                'Toplam $totalAyahs Ayet • Hızlı Ayet Seçimi',
+                                '${quranProvider.currentSurah?.getLocalizedAyahs(context.langCode) ?? context.tr('ayah_count_label', {'count': '$totalAyahs'})} • ${context.tr('quick_jump_title')}',
                                 style: const TextStyle(
                                   color: AppColors.textSecondary,
                                   fontSize: 12,
@@ -184,7 +186,7 @@ class _QuranDetailScreenState extends State<QuranDetailScreen> {
                             ),
                             textAlign: TextAlign.center,
                             decoration: InputDecoration(
-                              labelText: 'Ayet No (1 - $totalAyahs)',
+                              labelText: context.tr('quick_jump_label', {'total': '$totalAyahs'}),
                               labelStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
                               prefixIcon: const Icon(Icons.numbers, color: AppColors.goldPrimary),
                               filled: true,
@@ -217,7 +219,7 @@ class _QuranDetailScreenState extends State<QuranDetailScreen> {
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                           ),
                           icon: const Icon(Icons.arrow_forward_rounded),
-                          label: const Text('GİT', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                          label: Text(context.tr('go'), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
                           onPressed: () {
                             final parsed = int.tryParse(textController.text.trim()) ?? selectedNumber;
                             final validNum = parsed.clamp(1, totalAyahs);
@@ -242,7 +244,7 @@ class _QuranDetailScreenState extends State<QuranDetailScreen> {
                         max: totalAyahs.toDouble(),
                         value: selectedNumber.toDouble().clamp(1.0, totalAyahs.toDouble()),
                         divisions: totalAyahs > 1 ? totalAyahs - 1 : 1,
-                        label: '$selectedNumber. Ayet',
+                        label: context.tr('ayah_number_format', {'number': '$selectedNumber'}),
                         onChanged: (val) {
                           setModalState(() {
                             selectedNumber = val.round();
@@ -254,16 +256,16 @@ class _QuranDetailScreenState extends State<QuranDetailScreen> {
 
                     // Landmark shortcut chips
                     const SizedBox(height: 6),
-                    const Text(
-                      'Hızlı Atlama Noktaları:',
-                      style: TextStyle(color: AppColors.textSecondary, fontSize: 12, fontWeight: FontWeight.w600),
+                    Text(
+                      context.tr('quick_jump_points'),
+                      style: const TextStyle(color: AppColors.textSecondary, fontSize: 12, fontWeight: FontWeight.w600),
                     ),
                     const SizedBox(height: 8),
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
                       children: [
-                        _buildQuickChip('İlk Ayet (1)', () {
+                        _buildQuickChip(context.tr('first_ayah'), () {
                           Navigator.pop(ctx);
                           _jumpToAyah(0);
                         }),
@@ -284,11 +286,11 @@ class _QuranDetailScreenState extends State<QuranDetailScreen> {
                           }),
                         ],
                         if (totalAyahs > 20)
-                          _buildQuickChip('Orta Ayet (${(totalAyahs / 2).round()})', () {
+                          _buildQuickChip(context.tr('mid_ayah', {'mid': '${(totalAyahs / 2).round()}'}), () {
                             Navigator.pop(ctx);
                             _jumpToAyah((totalAyahs / 2).round() - 1);
                           }),
-                        _buildQuickChip('Son Ayet ($totalAyahs)', () {
+                        _buildQuickChip(context.tr('last_ayah', {'total': '$totalAyahs'}), () {
                           Navigator.pop(ctx);
                           _jumpToAyah(totalAyahs - 1);
                         }),
@@ -315,11 +317,17 @@ class _QuranDetailScreenState extends State<QuranDetailScreen> {
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Lütfen 1 ile $totalAyahs arasında geçerli bir ayet numarası girin.'),
+          content: Text(
+            context.tr('enter_valid_ayah', {'total': '$totalAyahs'}),
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
+          ),
           duration: const Duration(seconds: 2),
-          backgroundColor: Colors.redAccent.shade700,
+          backgroundColor: AppColors.bgDark3,
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: const BorderSide(color: Colors.redAccent),
+          ),
         ),
       );
     }
@@ -351,9 +359,9 @@ class _QuranDetailScreenState extends State<QuranDetailScreen> {
             children: [
               const Icon(Icons.bolt, color: AppColors.goldGlow, size: 20),
               const SizedBox(width: 8),
-              const Text(
-                'Ayet Numarası ile Çabuk Arama / Git',
-                style: TextStyle(
+              Text(
+                context.tr('quick_jump_bar_title'),
+                style: const TextStyle(
                   color: AppColors.goldLight,
                   fontSize: 13,
                   fontWeight: FontWeight.bold,
@@ -361,7 +369,7 @@ class _QuranDetailScreenState extends State<QuranDetailScreen> {
               ),
               const Spacer(),
               Text(
-                '1 - $totalAyahs Ayet',
+                context.tr('ayah_range_label', {'start': '1', 'end': '$totalAyahs'}),
                 style: const TextStyle(
                   color: AppColors.textSecondary,
                   fontSize: 11,
@@ -391,7 +399,7 @@ class _QuranDetailScreenState extends State<QuranDetailScreen> {
                     ),
                     decoration: InputDecoration(
                       prefixIcon: const Icon(Icons.tag, color: AppColors.goldPrimary, size: 18),
-                      hintText: 'Ayet No yazın (1 - $totalAyahs)...',
+                      hintText: context.tr('quick_jump_hint', {'total': '$totalAyahs'}),
                       hintStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
                       contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
                       border: InputBorder.none,
@@ -411,7 +419,7 @@ class _QuranDetailScreenState extends State<QuranDetailScreen> {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
                 icon: const Icon(Icons.arrow_forward_rounded, size: 18),
-                label: const Text('Git', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                label: Text(context.tr('go'), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                 onPressed: () {
                   _onQuickJumpSubmitted(_quickAyahController.text, totalAyahs);
                 },
@@ -424,31 +432,31 @@ class _QuranDetailScreenState extends State<QuranDetailScreen> {
             scrollDirection: Axis.horizontal,
             child: Row(
               children: [
-                _buildQuickJumpChip('1. Ayet', () => _jumpToAyah(0)),
+                _buildQuickJumpChip(context.tr('first_ayah_chip'), () => _jumpToAyah(0)),
                 const SizedBox(width: 6),
                 if (widget.surahNumber == 2) ...[
-                  _buildQuickJumpChip('Ayetel Kürsi (255)', () => _jumpToAyah(254)),
+                  _buildQuickJumpChip(context.tr('chip_ayat_kursi'), () => _jumpToAyah(254)),
                   const SizedBox(width: 6),
-                  _buildQuickJumpChip('Âmenerresûlü (285)', () => _jumpToAyah(284)),
+                  _buildQuickJumpChip(context.tr('chip_amenerrasulu'), () => _jumpToAyah(284)),
                   const SizedBox(width: 6),
                 ],
                 if (widget.surahNumber == 36) ...[
-                  _buildQuickJumpChip('Selâm Ayeti (58)', () => _jumpToAyah(57)),
+                  _buildQuickJumpChip(context.tr('chip_selam'), () => _jumpToAyah(57)),
                   const SizedBox(width: 6),
                 ],
                 if (widget.surahNumber == 3) ...[
-                  _buildQuickJumpChip('18. Ayet (Şehidallâh)', () => _jumpToAyah(17)),
+                  _buildQuickJumpChip(context.tr('chip_sehidallah'), () => _jumpToAyah(17)),
                   const SizedBox(width: 6),
                 ],
                 if (totalAyahs > 20) ...[
-                  _buildQuickJumpChip('Orta (${(totalAyahs / 2).round()})', () => _jumpToAyah((totalAyahs / 2).round() - 1)),
+                  _buildQuickJumpChip(context.tr('mid_ayah', {'mid': '${(totalAyahs / 2).round()}'}), () => _jumpToAyah((totalAyahs / 2).round() - 1)),
                   const SizedBox(width: 6),
                 ],
-                _buildQuickJumpChip('Son ($totalAyahs)', () => _jumpToAyah(totalAyahs - 1)),
+                _buildQuickJumpChip(context.tr('last_ayah', {'total': '$totalAyahs'}), () => _jumpToAyah(totalAyahs - 1)),
                 const SizedBox(width: 6),
                 ActionChip(
                   avatar: const Icon(Icons.tune_rounded, size: 13, color: AppColors.goldPrimary),
-                  label: const Text('Kaydırıcı & Detaylı Seçici', style: TextStyle(fontSize: 11, color: AppColors.goldGlow)),
+                  label: Text(context.tr('quick_jump_title'), style: const TextStyle(fontSize: 11, color: AppColors.goldGlow)),
                   backgroundColor: AppColors.bgDark1,
                   side: const BorderSide(color: AppColors.goldPrimary, width: 0.8),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -474,7 +482,7 @@ class _QuranDetailScreenState extends State<QuranDetailScreen> {
     );
   }
 
-  Widget _buildSurahHeaderCard(dynamic surah) {
+  Widget _buildSurahHeaderCard(dynamic surah, QuranProvider quranProvider) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(20),
@@ -499,10 +507,40 @@ class _QuranDetailScreenState extends State<QuranDetailScreen> {
           ),
           const SizedBox(height: 6),
           Text(
-            '${surah?.nameTr} • ${surah?.numberOfAyahs} Ayet • ${surah?.revelationTypeTr}',
+            '${surah?.getLocalizedName(context.langCode)} • ${surah?.getLocalizedAyahs(context.langCode)} • ${surah?.getLocalizedRevelationType(context.langCode)}',
             style: const TextStyle(
               color: AppColors.textSecondary,
               fontSize: 13,
+            ),
+          ),
+          const SizedBox(height: 8),
+          InkWell(
+            onTap: () => MealSelectModal.show(context),
+            borderRadius: BorderRadius.circular(10),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: AppColors.bgDark1.withValues(alpha: 0.6),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: AppColors.goldPrimary.withValues(alpha: 0.4)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.translate, size: 13, color: AppColors.goldPrimary),
+                  const SizedBox(width: 5),
+                  Text(
+                    '${context.tr('meal_tile_title')}: ${quranProvider.currentTranslation.name}',
+                    style: const TextStyle(
+                      color: AppColors.goldGlow,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  const Icon(Icons.keyboard_arrow_down, size: 14, color: AppColors.goldGlow),
+                ],
+              ),
             ),
           ),
           const Divider(color: AppColors.glassBorder, height: 24),
@@ -544,11 +582,17 @@ class _QuranDetailScreenState extends State<QuranDetailScreen> {
           ScaffoldMessenger.of(context).hideCurrentSnackBar();
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(msg),
+              content: Text(
+                msg,
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
+              ),
               duration: const Duration(seconds: 3),
               backgroundColor: AppColors.bgDark3,
               behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: const BorderSide(color: AppColors.glassBorder),
+              ),
             ),
           );
           quranProvider.clearAudioFeedback();
@@ -589,7 +633,7 @@ class _QuranDetailScreenState extends State<QuranDetailScreen> {
                 autofocus: true,
                 style: const TextStyle(color: AppColors.textPrimary),
                 decoration: InputDecoration(
-                  hintText: 'Ayet No (1 - ${quranProvider.ayahs.length}) veya metin...',
+                  hintText: context.tr('quran_detail_search_hint', {'total': '${quranProvider.ayahs.length}'}),
                   hintStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
                   border: InputBorder.none,
                 ),
@@ -602,7 +646,7 @@ class _QuranDetailScreenState extends State<QuranDetailScreen> {
                 },
               )
             : Text(
-                surah?.nameTr ?? 'Sure ${widget.surahNumber}',
+                surah?.getLocalizedName(context.langCode) ?? '${context.tr('surah_default_name')} ${widget.surahNumber}',
                 style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary),
               ),
         actions: [
@@ -614,7 +658,7 @@ class _QuranDetailScreenState extends State<QuranDetailScreen> {
               label: Text(
                 quranProvider.ayahs.isNotEmpty
                     ? '${(quranProvider.currentAyahIndex != -1 ? (quranProvider.currentAyahIndex + 1) : 1)}/${quranProvider.ayahs.length}'
-                    : 'Ayet Seç',
+                    : context.tr('select_ayah'),
                 style: const TextStyle(
                   color: AppColors.goldGlow,
                   fontWeight: FontWeight.bold,
@@ -629,7 +673,7 @@ class _QuranDetailScreenState extends State<QuranDetailScreen> {
           ),
           IconButton(
             icon: Icon(_isSearchOpen ? Icons.close : Icons.search, color: AppColors.goldPrimary),
-            tooltip: _isSearchOpen ? 'Aramayı Kapat' : 'Ayet / Metin Ara',
+            tooltip: _isSearchOpen ? context.tr('close_search') : context.tr('search_ayah_text'),
             onPressed: () {
               setState(() {
                 _isSearchOpen = !_isSearchOpen;
@@ -639,7 +683,7 @@ class _QuranDetailScreenState extends State<QuranDetailScreen> {
           ),
           IconButton(
             icon: const Icon(Icons.bookmark_outline, color: AppColors.goldPrimary),
-            tooltip: 'Beğenilen Ayetler',
+            tooltip: context.tr('fav_title'),
             onPressed: () {
               Navigator.push(
                 context,
@@ -648,8 +692,13 @@ class _QuranDetailScreenState extends State<QuranDetailScreen> {
             },
           ),
           IconButton(
+            icon: const Icon(Icons.translate, color: AppColors.goldPrimary),
+            tooltip: context.tr('meal_modal_title'),
+            onPressed: () => MealSelectModal.show(context),
+          ),
+          IconButton(
             icon: const Icon(Icons.record_voice_over, color: AppColors.goldPrimary),
-            tooltip: 'Hafız Seçimi',
+            tooltip: context.tr('hafiz_modal_title'),
             onPressed: () => HafizSelectModal.show(context),
           ),
         ],
@@ -664,14 +713,14 @@ class _QuranDetailScreenState extends State<QuranDetailScreen> {
               child: Row(
                 children: [
                   Text(
-                    '$numSearch. Ayet bulundu',
+                    context.tr('ayah_found', {'num': '$numSearch'}),
                     style: const TextStyle(color: AppColors.textPrimary, fontSize: 13),
                   ),
                   const Spacer(),
                   TextButton.icon(
                     style: TextButton.styleFrom(foregroundColor: AppColors.goldGlow),
                     icon: const Icon(Icons.navigation, size: 16),
-                    label: const Text('Bu Ayete Git'),
+                    label: Text(context.tr('go_to_this_ayah')),
                     onPressed: () => _jumpToAyah(numSearch - 1),
                   ),
                 ],
@@ -694,7 +743,7 @@ class _QuranDetailScreenState extends State<QuranDetailScreen> {
                               Text(
                                 quranProvider.errorMessage.isNotEmpty
                                     ? quranProvider.errorMessage
-                                    : 'Ayetler yüklenemedi',
+                                    : context.tr('ayahs_load_error'),
                                 textAlign: TextAlign.center,
                                 style: const TextStyle(color: AppColors.textPrimary, fontSize: 15),
                               ),
@@ -705,7 +754,7 @@ class _QuranDetailScreenState extends State<QuranDetailScreen> {
                                   foregroundColor: AppColors.bgDark1,
                                 ),
                                 icon: const Icon(Icons.refresh),
-                                label: const Text('Tekrar Dene'),
+                                label: Text(context.tr('retry')),
                                 onPressed: () {
                                   quranProvider.loadSurah(widget.surahNumber);
                                 },
@@ -722,7 +771,7 @@ class _QuranDetailScreenState extends State<QuranDetailScreen> {
                                 const Icon(Icons.search_off, color: AppColors.goldPrimary, size: 48),
                                 const SizedBox(height: 12),
                                 Text(
-                                  '"$searchQuery" ile eşleşen ayet bulunamadı',
+                                  context.tr('ayah_search_not_found', {'query': searchQuery}),
                                   style: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
                                 ),
                               ],
@@ -738,7 +787,7 @@ class _QuranDetailScreenState extends State<QuranDetailScreen> {
                     itemBuilder: (context, index) {
                       if (!_isSearchOpen || searchQuery.isEmpty) {
                         if (index == 0) {
-                          return _buildSurahHeaderCard(surah);
+                          return _buildSurahHeaderCard(surah, quranProvider);
                         }
                         if (index == 1) {
                           return _buildQuickJumpBar(context, quranProvider);
@@ -798,7 +847,7 @@ class _QuranDetailScreenState extends State<QuranDetailScreen> {
                                         border: Border.all(color: AppColors.goldPrimary),
                                       ),
                                       child: Text(
-                                        'Ayet ${ayah.numberInSurah}',
+                                        context.tr('ayah_number_format', {'number': '${ayah.numberInSurah}'}),
                                         style: const TextStyle(
                                           color: AppColors.goldPrimary,
                                           fontWeight: FontWeight.bold,
@@ -818,14 +867,14 @@ class _QuranDetailScreenState extends State<QuranDetailScreen> {
                                             borderRadius: BorderRadius.circular(10),
                                             border: Border.all(color: AppColors.goldPrimary, width: 0.8),
                                           ),
-                                          child: const Row(
+                                          child: Row(
                                             mainAxisSize: MainAxisSize.min,
                                             children: [
-                                              Icon(Icons.arrow_forward_rounded, size: 12, color: AppColors.goldGlow),
-                                              SizedBox(width: 4),
+                                              const Icon(Icons.arrow_forward_rounded, size: 12, color: AppColors.goldGlow),
+                                              const SizedBox(width: 4),
                                               Text(
-                                                'Ayete Git',
-                                                style: TextStyle(
+                                                context.tr('go'),
+                                                style: const TextStyle(
                                                   color: AppColors.goldGlow,
                                                   fontSize: 11,
                                                   fontWeight: FontWeight.bold,
@@ -852,11 +901,11 @@ class _QuranDetailScreenState extends State<QuranDetailScreen> {
                                             : AppColors.textSecondary,
                                         size: 22,
                                       ),
-                                      tooltip: 'Beğenilenlere Ekle',
+                                      tooltip: context.tr('fav_add_tooltip'),
                                       onPressed: () async {
                                         final added = await quranProvider.toggleFavorite(
                                           surahNumber: widget.surahNumber,
-                                          surahName: surah?.nameTr ?? 'Sure ${widget.surahNumber}',
+                                          surahName: surah?.getLocalizedName(context.langCode) ?? '${context.tr('surah_default_name')} ${widget.surahNumber}',
                                           ayahNumber: ayah.numberInSurah,
                                           textAr: ayah.textAr,
                                           textTr: ayah.textTr,
@@ -866,11 +915,19 @@ class _QuranDetailScreenState extends State<QuranDetailScreen> {
                                             SnackBar(
                                               content: Text(
                                                 added
-                                                    ? '${ayah.numberInSurah}. Ayet beğenilenlere eklendi'
-                                                    : '${ayah.numberInSurah}. Ayet beğenilenlerden çıkarıldı',
+                                                    ? context.tr('fav_added_snack', {'number': '${ayah.numberInSurah}'})
+                                                    : context.tr('fav_removed_ayah_snack', {'number': '${ayah.numberInSurah}'}),
+                                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
                                               ),
-                                              backgroundColor: added ? AppColors.emeraldDark : AppColors.cardBg,
-                                              duration: const Duration(seconds: 1),
+                                              backgroundColor: AppColors.bgDark3,
+                                              behavior: SnackBarBehavior.floating,
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius: BorderRadius.circular(12),
+                                                side: BorderSide(
+                                                  color: added ? AppColors.emeraldAccent.withValues(alpha: 0.5) : AppColors.glassBorder,
+                                                ),
+                                              ),
+                                              duration: const Duration(seconds: 2),
                                             ),
                                           );
                                         }
@@ -888,15 +945,24 @@ class _QuranDetailScreenState extends State<QuranDetailScreen> {
                                           color: isPinned ? AppColors.goldGlow : AppColors.textSecondary,
                                           size: 22,
                                         ),
-                                        tooltip: isPinned ? 'Widget Sabitlemesini Kaldır' : 'Ana Ekran Widget\'ına Sabitle',
+                                        tooltip: isPinned ? context.tr('widget_unpin_tooltip') : context.tr('widget_pin_tooltip'),
                                         onPressed: () async {
                                           if (isPinned) {
                                             await quranProvider.unpinAyah();
                                             if (context.mounted) {
                                               ScaffoldMessenger.of(context).showSnackBar(
-                                                const SnackBar(
-                                                  content: Text('Ayet ana ekran widget\'ından kaldırıldı'),
-                                                  duration: Duration(seconds: 1),
+                                                SnackBar(
+                                                  content: Text(
+                                                    context.tr('widget_unpinned_snack'),
+                                                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
+                                                  ),
+                                                  backgroundColor: AppColors.bgDark3,
+                                                  behavior: SnackBarBehavior.floating,
+                                                  shape: RoundedRectangleBorder(
+                                                    borderRadius: BorderRadius.circular(12),
+                                                    side: const BorderSide(color: AppColors.glassBorder),
+                                                  ),
+                                                  duration: const Duration(seconds: 2),
                                                 ),
                                               );
                                             }
@@ -904,7 +970,7 @@ class _QuranDetailScreenState extends State<QuranDetailScreen> {
                                             await quranProvider.pinAyah(
                                               FavoriteAyahModel(
                                                 surahNumber: widget.surahNumber,
-                                                surahName: surah?.nameTr ?? 'Sure ${widget.surahNumber}',
+                                                surahName: surah?.getLocalizedName(context.langCode) ?? '${context.tr('surah_default_name')} ${widget.surahNumber}',
                                                 ayahNumber: ayah.numberInSurah,
                                                 textAr: ayah.textAr,
                                                 textTr: ayah.textTr,
@@ -914,9 +980,18 @@ class _QuranDetailScreenState extends State<QuranDetailScreen> {
                                               ScaffoldMessenger.of(context).showSnackBar(
                                                 SnackBar(
                                                   content: Text(
-                                                    '📌 ${surah?.nameTr ?? "Sure"} ${ayah.numberInSurah}. Ayet ana ekran widget\'ına sabitlendi!',
+                                                    context.tr('widget_pinned_ayah_snack', {
+                                                      'surah': surah?.getLocalizedName(context.langCode) ?? context.tr('surah_default_name'),
+                                                      'number': '${ayah.numberInSurah}',
+                                                    }),
+                                                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
                                                   ),
-                                                  backgroundColor: AppColors.emeraldDark,
+                                                  backgroundColor: AppColors.bgDark3,
+                                                  behavior: SnackBarBehavior.floating,
+                                                  shape: RoundedRectangleBorder(
+                                                    borderRadius: BorderRadius.circular(12),
+                                                    side: BorderSide(color: AppColors.goldGlow.withValues(alpha: 0.5)),
+                                                  ),
                                                   duration: const Duration(seconds: 2),
                                                 ),
                                               );
@@ -932,7 +1007,7 @@ class _QuranDetailScreenState extends State<QuranDetailScreen> {
                                         color: AppColors.goldLight,
                                         size: 22,
                                       ),
-                                      tooltip: 'Post / Kart Oluştur',
+                                      tooltip: context.tr('create_post_tooltip'),
                                       onPressed: () {
                                         Navigator.push(
                                           context,
@@ -1012,7 +1087,9 @@ class _QuranDetailScreenState extends State<QuranDetailScreen> {
               children: [
                 InkWell(
                   onTap: () => HafizSelectModal.show(context),
+                  borderRadius: BorderRadius.circular(12),
                   child: Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       const CircleAvatar(
                         backgroundColor: AppColors.goldPrimary,
@@ -1030,11 +1107,13 @@ class _QuranDetailScreenState extends State<QuranDetailScreen> {
                               fontWeight: FontWeight.bold,
                               fontSize: 13,
                             ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                           Text(
                             quranProvider.currentAyahIndex != -1
-                                ? 'Ayet ${quranProvider.currentAyahIndex + 1} okunuyor'
-                                : 'Hafız değiştir',
+                                ? context.tr('ayah_number_format', {'number': '${quranProvider.currentAyahIndex + 1}'})
+                                : context.tr('change_hafiz'),
                             style: const TextStyle(
                               color: AppColors.goldLight,
                               fontSize: 11,

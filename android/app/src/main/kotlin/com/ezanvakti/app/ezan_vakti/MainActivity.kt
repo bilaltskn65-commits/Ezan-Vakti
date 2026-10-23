@@ -34,6 +34,13 @@ class MainActivity : FlutterActivity() {
                     PinnedAyahWidgetProvider.updateAllWidgets(applicationContext)
                     result.success(true)
                 }
+                "stopQuranAudioService" -> {
+                    QuranAudioService.stopService(applicationContext)
+                    result.success(true)
+                }
+                "isQuranServicePlaying" -> {
+                    result.success(QuranAudioService.isServiceRunning)
+                }
                 "pinWidget" -> {
                     val widgetType = call.argument<String>("type") ?: "prayer"
                     val providerClass = when (widgetType) {
@@ -65,5 +72,11 @@ class MainActivity : FlutterActivity() {
                 }
             }
         }
+    }
+
+    // Keep raw audio resources from being stripped during release builds
+    private fun keepRawAudio() {
+        val r1 = R.raw.ezan_uyari
+        val r2 = R.raw.uyari_kanun
     }
 }

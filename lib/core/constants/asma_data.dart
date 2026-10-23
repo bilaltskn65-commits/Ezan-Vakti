@@ -772,7 +772,7 @@ class AsmaData {
     ),
     AsmaModel(
       id: 97,
-      nameAr: 'الوَاثِثُ',
+      nameAr: 'الوَارِثُ',
       nameTr: 'El-Vâris',
       meaning: 'Bütün mülkün gerçek ve nihai tek varisi.',
       virtue: 'Günde 707 defa zikredenin ömrü ve rızkı bereketlenir, hayırlı zürriyete kavuşur.',
@@ -796,11 +796,15 @@ class AsmaData {
     ),
   ];
 
-  static List<AsmaModel> search(String query) {
+  static List<AsmaModel> search(String query, {String lang = 'tr'}) {
     if (query.trim().isEmpty) return names;
     final clean = query.toLowerCase().trim();
     return names.where((item) {
-      return item.nameTr.toLowerCase().contains(clean) ||
+      final locName = item.getLocalizedName(lang).toLowerCase();
+      final locMeaning = item.getLocalizedMeaning(lang).toLowerCase();
+      return locName.contains(clean) ||
+          locMeaning.contains(clean) ||
+          item.nameTr.toLowerCase().contains(clean) ||
           item.nameAr.contains(clean) ||
           item.meaning.toLowerCase().contains(clean) ||
           item.id.toString() == clean;

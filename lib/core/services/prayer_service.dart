@@ -27,7 +27,7 @@ class PrayerService {
         throw Exception('Server Error ${response.statusCode}');
       }
     } catch (e) {
-      final cached = await _loadCache();
+      final cached = await loadCache();
       if (cached != null) return cached;
       return getFallbackTimes(locationName);
     }
@@ -51,7 +51,7 @@ class PrayerService {
         throw Exception('Server Error ${response.statusCode}');
       }
     } catch (e) {
-      final cached = await _loadCache();
+      final cached = await loadCache();
       if (cached != null) return cached;
       return getFallbackTimes('$city, $country');
     }
@@ -65,7 +65,7 @@ class PrayerService {
     } catch (_) {}
   }
 
-  static Future<PrayerTimesModel?> _loadCache() async {
+  static Future<PrayerTimesModel?> loadCache() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final body = prefs.getString(_cachedTimesKey);

@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../models/prayer_times_model.dart';
 import '../core/constants/app_colors.dart';
+import '../providers/locale_provider.dart';
 
 class PrayerCountdownWidget extends StatefulWidget {
   final PrayerTimesModel prayerTimes;
@@ -37,10 +39,13 @@ class _PrayerCountdownWidgetState extends State<PrayerCountdownWidget> {
 
   @override
   Widget build(BuildContext context) {
+    final loc = context.watch<LocaleProvider>();
     final nextInfo = widget.prayerTimes.getNextPrayer();
-    final String nextName = nextInfo['name'] ?? 'Vakit';
+    final String rawNextName = nextInfo['name'] ?? 'Vakit';
+    final String rawCurrentName = nextInfo['currentName'] ?? '';
+    final String nextName = loc.prayerName(rawNextName);
+    final String currentName = loc.prayerName(rawCurrentName);
     final String nextTimeStr = nextInfo['time'] ?? '';
-    final String currentName = nextInfo['currentName'] ?? '';
     final Duration remaining = nextInfo['remaining'] as Duration? ?? Duration.zero;
     final double progress = (nextInfo['progress'] as double? ?? 0.0).clamp(0.0, 1.0);
 
@@ -52,6 +57,12 @@ class _PrayerCountdownWidgetState extends State<PrayerCountdownWidget> {
     final seconds = (safeRemaining.inSeconds % 60).toString().padLeft(2, '0');
 
     final percentText = (progress * 100).toInt();
+
+    final titleText = loc.isArabic
+        ? '${loc.translate('remaining_time_title')} $nextName'
+        : (loc.languageCode == 'en'
+            ? '${loc.translate('remaining_time_title')} $nextName'
+            : '$nextName ${loc.translate('remaining_time_title')}');
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -100,7 +111,7 @@ class _PrayerCountdownWidgetState extends State<PrayerCountdownWidget> {
                     const Icon(Icons.wb_sunny_outlined, color: AppColors.emeraldAccent, size: 14),
                     const SizedBox(width: 5),
                     Text(
-                      'Şu an: $currentName',
+                      '${loc.translate('current_time_prefix')}: $currentName',
                       style: const TextStyle(
                         color: AppColors.textPrimary,
                         fontSize: 12,
@@ -154,7 +165,7 @@ class _PrayerCountdownWidgetState extends State<PrayerCountdownWidget> {
                 const Icon(Icons.timer_outlined, color: AppColors.goldGlow, size: 16),
                 const SizedBox(width: 6),
                 Text(
-                  '$nextName Vaktine Kalan Süre',
+                  titleText,
                   style: const TextStyle(
                     color: AppColors.goldGlow,
                     fontSize: 15,
@@ -172,11 +183,11 @@ class _PrayerCountdownWidgetState extends State<PrayerCountdownWidget> {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              _buildDigitalBox(hours, 'SAAT'),
+              _buildDigitalBox(hours, loc.translate('hours')),
               _buildSeparator(),
-              _buildDigitalBox(minutes, 'DAKİKA'),
+              _buildDigitalBox(minutes, loc.translate('minutes')),
               _buildSeparator(),
-              _buildDigitalBox(seconds, 'SANİYE'),
+              _buildDigitalBox(seconds, loc.translate('seconds')),
             ],
           ),
 
@@ -190,7 +201,7 @@ class _PrayerCountdownWidgetState extends State<PrayerCountdownWidget> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Vaktin %$percentText\'i geçti',
+                    loc.formatElapsed(percentText),
                     style: TextStyle(
                       color: AppColors.textSecondary.withValues(alpha: 0.9),
                       fontSize: 11,
@@ -198,9 +209,7 @@ class _PrayerCountdownWidgetState extends State<PrayerCountdownWidget> {
                     ),
                   ),
                   Text(
-                    safeRemaining.inHours > 0
-                        ? '${safeRemaining.inHours} sa ${safeRemaining.inMinutes % 60} dk kaldı'
-                        : '${safeRemaining.inMinutes % 60} dk ${safeRemaining.inSeconds % 60} sn kaldı',
+                    loc.formatRemaining(safeRemaining),
                     style: const TextStyle(
                       color: AppColors.emeraldAccent,
                       fontSize: 11,
@@ -237,33 +246,6 @@ class _PrayerCountdownWidgetState extends State<PrayerCountdownWidget> {
               ),
             ],
           ),
-
-          const SizedBox(height: 14),
-
-          // Notification status indicator
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: AppColors.bgDark1.withValues(alpha: 0.7),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.glassBorder),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: const [
-                Icon(Icons.notifications_active, color: AppColors.emeraldAccent, size: 14),
-                SizedBox(width: 6),
-                Text(
-                  '45 dakika kala bildirim ve ezan vakti uyarısı aktif',
-                  style: TextStyle(
-                    color: AppColors.textSecondary,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ),
         ],
       ),
     );
@@ -273,7 +255,7 @@ class _PrayerCountdownWidgetState extends State<PrayerCountdownWidget> {
     return Column(
       children: [
         Container(
-          constraints: const Duration(milliseconds: 100) == Duration.zero ? null : const BoxConstraints(minWidth: 64),
+          constraints: const BoxConstraints(minWidth: 64),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
             color: AppColors.bgDark1,

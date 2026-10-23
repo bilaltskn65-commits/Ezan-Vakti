@@ -27,5 +27,22 @@ class SurahModel {
   }
 
   String get revelationTypeTr => revelationType.toLowerCase() == 'meccan' ? 'Mekke' : 'Medine';
-}
 
+  String getLocalizedRevelationType(String lang) {
+    final isMeccan = revelationType.toLowerCase() == 'meccan';
+    if (lang == 'en') return isMeccan ? 'Meccan' : 'Medinan';
+    if (lang == 'ar') return isMeccan ? 'مكية' : 'مدنية';
+    return isMeccan ? 'Mekke' : 'Medine';
+  }
+
+  String getLocalizedAyahs(String lang) {
+    if (lang == 'en') return '$numberOfAyahs Verses';
+    if (lang == 'ar') return '$numberOfAyahs آية';
+    return '$numberOfAyahs Ayet';
+  }
+
+  String getLocalizedName(String lang) {
+    if (lang == 'ar' && nameAr.isNotEmpty) return nameAr;
+    return nameTr;
+  }
+}

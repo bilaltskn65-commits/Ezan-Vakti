@@ -26,10 +26,28 @@ class AyahModel {
     );
   }
 
+  String get translation => textTr;
+
   // Returns formatted 3-digit surah and 3-digit ayah for audio URL
   String getAudioUrl(int surahNumber, String hafizServerPath) {
+    int audioAyahNum = numberInSurah;
+    if (surahNumber == 1) {
+      if (numberInSurah == 1) {
+        audioAyahNum = 2; // Elhamdülillâhi Rabbi'l-âlemîn
+      } else if (numberInSurah == 2) {
+        audioAyahNum = 3; // Er-Rahmâni'r-Rahîm
+      } else if (numberInSurah == 3) {
+        audioAyahNum = 4; // Mâliki yevmi'd-dîn
+      } else if (numberInSurah == 4) {
+        audioAyahNum = 5; // İyyâke na'büdü ve iyyâke neste'în
+      } else if (numberInSurah == 5) {
+        audioAyahNum = 6; // İhdine's-sırâta'l-müstakîm
+      } else {
+        audioAyahNum = 7; // Sırâtallezîne en'amte...
+      }
+    }
     final sStr = surahNumber.toString().padLeft(3, '0');
-    final aStr = numberInSurah.toString().padLeft(3, '0');
+    final aStr = audioAyahNum.toString().padLeft(3, '0');
     return 'https://www.everyayah.com/data/$hafizServerPath/$sStr$aStr.mp3';
   }
 }

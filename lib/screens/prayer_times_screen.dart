@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/prayer_provider.dart';
+import '../providers/locale_provider.dart';
 import '../core/constants/app_colors.dart';
 import '../widgets/prayer_countdown_widget.dart';
-import '../widgets/app_widgets_modal.dart';
-import 'location_search_modal.dart';
+import '../widgets/modals/app_widgets_modal.dart';
+import '../widgets/modals/location_search_modal.dart';
 
 class PrayerTimesScreen extends StatelessWidget {
   const PrayerTimesScreen({super.key});
@@ -12,29 +13,30 @@ class PrayerTimesScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final prayerProvider = Provider.of<PrayerProvider>(context);
+    final loc = Provider.of<LocaleProvider>(context);
     final prayerTimes = prayerProvider.prayerTimes;
 
     return Scaffold(
       backgroundColor: AppColors.bgDark1,
       appBar: AppBar(
-        title: const Text(
-          'Ezan Vakti & Kuran',
-          style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+        title: Text(
+          loc.translate('app_title'),
+          style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary),
         ),
         actions: [
           IconButton(
             icon: const Icon(Icons.widgets_outlined, color: AppColors.emeraldAccent),
-            tooltip: 'Ana Ekran Widget\'ları',
+            tooltip: loc.translate('widgets_tooltip'),
             onPressed: () => AppWidgetsModal.show(context),
           ),
           IconButton(
             icon: const Icon(Icons.location_on, color: AppColors.goldPrimary),
-            tooltip: 'Konum Değiştir',
+            tooltip: loc.translate('location_tooltip'),
             onPressed: () => LocationSearchModal.show(context),
           ),
         ],
       ),
-      body: prayerProvider.isLoading
+      body: (prayerProvider.isLoading && prayerTimes == null)
           ? const Center(
               child: CircularProgressIndicator(color: AppColors.goldPrimary),
             )
@@ -43,14 +45,14 @@ class PrayerTimesScreen extends StatelessWidget {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Text(
-                        'Vakitler yüklenemedi',
-                        style: TextStyle(color: AppColors.textPrimary),
+                      Text(
+                        loc.translate('load_error'),
+                        style: const TextStyle(color: AppColors.textPrimary),
                       ),
                       const SizedBox(height: 12),
                       ElevatedButton(
                         onPressed: () => prayerProvider.fetchPrayerTimesWithAutoLocation(),
-                        child: const Text('Tekrar Dene'),
+                        child: Text(loc.translate('retry')),
                       )
                     ],
                   ),
@@ -100,9 +102,9 @@ class PrayerTimesScreen extends StatelessWidget {
                                   ),
                                 ),
                               ),
-                              const Text(
-                                'Değiştir',
-                                style: TextStyle(
+                              Text(
+                                loc.translate('change'),
+                                style: const TextStyle(
                                   color: AppColors.goldGlow,
                                   fontSize: 12,
                                   fontWeight: FontWeight.bold,
@@ -121,9 +123,9 @@ class PrayerTimesScreen extends StatelessWidget {
                       const SizedBox(height: 24),
 
                       // Günün Vakitleri Başlığı
-                      const Text(
-                        'Bugünün Vakitleri',
-                        style: TextStyle(
+                      Text(
+                        loc.translate('todays_prayers'),
+                        style: const TextStyle(
                           color: AppColors.textPrimary,
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -133,13 +135,14 @@ class PrayerTimesScreen extends StatelessWidget {
 
                       // Prayer Cards List
                       ...prayerTimes.asList.entries.map((entry) {
-                        final prayerName = entry.key;
+                        final rawPrayerName = entry.key;
+                        final prayerDisplayName = loc.prayerName(rawPrayerName);
                         final timeStr = entry.value;
                         final nextInfo = prayerTimes.getNextPrayer();
-                        final isNext = (nextInfo['name'] == prayerName);
+                        final isNext = (nextInfo['name'] == rawPrayerName);
 
                         IconData icon;
-                        switch (prayerName) {
+                        switch (rawPrayerName) {
                           case 'İmsak':
                             icon = Icons.nightlight_round;
                             break;
@@ -186,7 +189,7 @@ class PrayerTimesScreen extends StatelessWidget {
                               ),
                               const SizedBox(width: 16),
                               Text(
-                                prayerName,
+                                prayerDisplayName,
                                 style: TextStyle(
                                   color: AppColors.textPrimary,
                                   fontSize: 17,

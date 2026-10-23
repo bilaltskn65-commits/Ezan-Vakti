@@ -40,7 +40,11 @@ class QuranAudioWidgetProvider : AppWidgetProvider() {
     }
 
     companion object {
-        fun updateAllWidgets(context: Context, isPlaying: Boolean? = null, trackTitle: String? = null) {
+        fun updateAllWidgets(
+            context: Context,
+            isPlaying: Boolean? = null,
+            trackTitle: String? = null
+        ) {
             val appWidgetManager = AppWidgetManager.getInstance(context)
             val thisWidget = ComponentName(context, QuranAudioWidgetProvider::class.java)
             val appWidgetIds = appWidgetManager.getAppWidgetIds(thisWidget)
@@ -58,7 +62,7 @@ class QuranAudioWidgetProvider : AppWidgetProvider() {
         ) {
             val views = RemoteViews(context.packageName, R.layout.quran_audio_app_widget)
 
-            // Open app on container click
+            // Open app on container click or badge click
             val openIntent = Intent(context, MainActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
                 putExtra("tab", 1) // Quran tab
@@ -68,8 +72,9 @@ class QuranAudioWidgetProvider : AppWidgetProvider() {
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
             views.setOnClickPendingIntent(R.id.widget_quran_container, pOpen)
+            views.setOnClickPendingIntent(R.id.tv_reciter_name, pOpen)
 
-            // Play/Pause Action - directly starts foreground service
+            // Play/Pause Action
             val playIntent = Intent(context, QuranAudioService::class.java).apply {
                 action = QuranAudioService.ACTION_PLAY_PAUSE
             }
@@ -128,12 +133,13 @@ class QuranAudioWidgetProvider : AppWidgetProvider() {
                 (prefs.all["flutter.current_audio_ayah"] as? Number)?.toInt() ?: 5
             } catch (e: Exception) { 5 }
 
-            val displayTitle = overrideTitle ?: "$surah, $ayah. Ayet"
+            val displayTitle = overrideTitle ?: "$surah • $ayah. Ayet"
             views.setTextViewText(R.id.tv_audio_title, displayTitle)
+            views.setTextViewText(R.id.tv_reciter_name, "Saad el-Gamdi")
 
             if (playing) {
                 views.setImageViewResource(R.id.btn_play_pause, R.drawable.ic_widget_pause)
-                views.setTextViewText(R.id.tv_audio_status, "Oynatılıyor • Dinlemek için durdurun")
+                views.setTextViewText(R.id.tv_audio_status, "Tilavet Çalıyor • Durdurmak için dokunun")
             } else {
                 views.setImageViewResource(R.id.btn_play_pause, R.drawable.ic_widget_play)
                 views.setTextViewText(R.id.tv_audio_status, "Dokununca doğrudan çalar")
