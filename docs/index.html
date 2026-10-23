@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gizlilik Politikası | Ezan Vakti & Kuran-ı Kerim</title>
+  <style>
+    :root {
+      --bg-color: #0b1510;
+      --card-bg: #13221a;
+      --text-primary: #f0fdf4;
+      --text-secondary: #94a3b8;
+      --accent: #10b981;
+      --accent-gold: #fbbf24;
+      --border-color: #1e3a2b;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-primary);
+      line-height: 1.7;
+      padding: 30px 15px;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 40px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+    }
+    header {
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 24px;
+      margin-bottom: 30px;
+      text-align: center;
+    }
+    .badge {
+      display: inline-block;
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--accent);
+      padding: 4px 14px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+    h1 {
+      font-size: 26px;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+    }
+    .date {
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+    h2 {
+      font-size: 19px;
+      color: var(--accent-gold);
+      margin-top: 30px;
+      margin-bottom: 12px;
+      border-left: 3px solid var(--accent);
+      padding-left: 12px;
+    }
+    p, ul {
+      color: var(--text-secondary);
+      font-size: 15px;
+      margin-bottom: 16px;
+    }
+    ul {
+      padding-left: 20px;
+    }
+    li {
+      margin-bottom: 8px;
+    }
+    strong {
+      color: var(--text-primary);
+    }
+    .contact-box {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 20px;
+      margin-top: 30px;
+      text-align: center;
+    }
+    footer {
+      text-align: center;
+      margin-top: 30px;
+      color: #64748b;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <div class="badge">Ezan Vakti & Kuran-ı Kerim</div>
+    <h1>Gizlilik Politikası (Privacy Policy)</h1>
+    <div class="date">Son Güncelleme: 23 Ekim 2026</div>
+  </header>
+
+  <p>
+    <strong>Ezan Vakti & Kuran-ı Kerim</strong> ("Uygulama") olarak kullanıcılarımızın gizliliğine ve kişisel verilerinin korunmasına en üst düzeyde önem veriyoruz. Bu Gizlilik Politikası, uygulamamızı kullandığınızda hangi verilerin işlendiğini ve gizliliğinizin nasıl korunduğunu açıklar.
+  </p>
+
+  <h2>1. Toplanan ve Kullanılan Veriler</h2>
+  <p>Uygulamamız kullanıcı gizliliğini temel alan, çevrimdışı öncelikli (offline-first) bir mimari ile tasarlanmıştır. Bu kapsamda:</p>
+  <ul>
+    <li>
+      <strong>Konum Bilgisi (ACCESS_FINE_LOCATION / ACCESS_COARSE_LOCATION):</strong>
+      Konum bilginiz, yalnızca bulunduğunuz şehir veya koordinatlara ait Diyanet namaz vakitlerini doğru hesaplamak ve pusula ile Kıble açısını (Kabe yönünü) tespit etmek amacıyla anlık olarak cihazınızda kullanılır. Konum verileriniz hiçbir sunucumuzda <u>saklanmaz</u>, kaydedilmez ve kesinlikle üçüncü taraflarla <u>paylaşılmaz</u>.
+    </li>
+    <li>
+      <strong>Bildirimler ve Alarmlar (POST_NOTIFICATIONS / SCHEDULE_EXACT_ALARM):</strong>
+      Ezan vakitlerinde ve vakitten önceki hatırlatmalarda (örneğin 45 dakika kala) uyarı tonları ve bildirim alabilmeniz için kullanılır. Bildirim ayarlarınız tamamen cihazınızda saklanır.
+    </li>
+    <li>
+      <strong>Ön Plan Ses Servisi (FOREGROUND_SERVICE_MEDIA_PLAYBACK):</strong>
+      Kuran-ı Kerim tilavetini dinlerken ekran kapandığında veya başka uygulamaya geçtiğinizde sesin kesilmeden çalabilmesi ve bildirim çubuğunda ses kontrol butonlarının gösterilmesi amacıyla kullanılır.
+    </li>
+    <li>
+      <strong>Depolama ve Önbellek:</strong>
+      Kullanıcının seçtiği ayarlar (favori ayetler, indirilen Kuran sesleri, seçili şehir) yalnızca kullanıcının kendi cihazında yerel olarak (SharedPreferences) tutulur.
+    </li>
+  </ul>
+
+  <h2>2. Veri Paylaşımı ve Üçüncü Taraflar</h2>
+  <p>
+    Uygulama, namaz vakitlerini ve sesli sureleri getirebilmek için yalnızca güvenilir ve açık kaynaklı API servislerini (Aladhan API ve EveryAyah) kullanır. Bu istekler sırasında kullanıcının kimliğini açığa çıkaracak hiçbir kişisel bilgi gönderilmez.
+  </p>
+  <p>
+    Uygulamamızda reklam ağı, izleyici (tracker) veya kişisel veri toplayan analiz SDK'ları <strong>bulunmamaktadır</strong>. Bilgileriniz hiçbir şekilde satılmaz, kiralanmaz veya ticari amaçla paylaşılamaz.
+  </p>
+
+  <h2>3. Çocukların Gizliliği</h2>
+  <p>
+    Uygulamamız genel kitleye hitap etmekte olup, 13 yaşın altındaki çocuklardan bilerek herhangi bir kişisel bilgi toplamamaktadır.
+  </p>
+
+  <h2>4. Kullanıcı Hakları ve Güvenlik</h2>
+  <p>
+    Cihazınızın ayarlar menüsünden dilediğiniz zaman konum veya bildirim izinlerini iptal edebilirsiniz. Uygulamayı sildiğinizde cihazda tutulan tüm önbellek ve favori verileri kalıcı olarak silinir.
+  </p>
+
+  <h2>5. İletişim</h2>
+  <div class="contact-box">
+    <p>Bu gizlilik politikası hakkında herhangi bir sorunuz veya geri bildiriminiz olması durumunda bizimle iletişime geçebilirsiniz:</p>
+    <p><strong>Geliştirici E-posta:</strong> bilaltskn65@gmail.com</p>
+    <p><strong>Uygulama:</strong> Ezan Vakti & Kuran-ı Kerim</p>
+  </div>
+</div>
+
+<footer>
+  © 2026 Ezan Vakti & Kuran-ı Kerim. Tüm Hakları Saklıdır.
+</footer>
+
+</body>
+</html>
